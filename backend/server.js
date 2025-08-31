@@ -4,7 +4,7 @@ import dotenv from 'dotenv';
 
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import userRoutes from './routes/userRoutes.js';
-import pool from './db.js';
+import pool from './config/db.js';
 
 dotenv.config();
 const port = process.env.PORT || 5000;
