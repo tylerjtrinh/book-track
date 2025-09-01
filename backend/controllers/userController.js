@@ -1,4 +1,4 @@
-import pool from '../config/db.js'
+import pool from '../config/db.js';
 import bcrypt from 'bcrypt';
 import generateToken from '../utils/generateToken.js';
 
@@ -104,10 +104,6 @@ const logoutUser = async (req, res, next) => {
         next(error);
     }
 };
-
-
-
-
 
 // @desc     Get user profile
 // @route    GET /api/users/profile

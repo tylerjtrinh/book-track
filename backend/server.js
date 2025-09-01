@@ -7,6 +7,7 @@ import cors from 'cors';
 
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import userRoutes from './routes/userRoutes.js';
+import bookRoutes from './routes/bookRoutes.js';
 
 const port = process.env.PORT || 5000;
 
@@ -21,8 +22,7 @@ app.use(express.urlencoded({ extended: true}));
 
 //Routes
 app.use('/api/users', userRoutes);
-
-//BOOK Route Later
+app.use('/api/books', bookRoutes);
 
 //FOR NOW probably change later
 app.get('/', (req, res) => res.send('Server is ready'));
