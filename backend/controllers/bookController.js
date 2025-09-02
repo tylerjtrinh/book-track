@@ -10,7 +10,7 @@ const getAllBooks = async (req, res, next) => {
 
         //GET all books from users reading list
         const result = await pool.query(
-            'SELECT * FROM book WHERE user_id = $1',
+            'SELECT * FROM book WHERE user_id = $1 ORDER BY created_at ASC',
             [userId]
         );
 
@@ -45,7 +45,7 @@ const getFilteredBooks = async (req, res, next) => {
 
         // GET filtered books from user's reading list
         const result = await pool.query(
-            `SELECT * FROM book WHERE ${columnName} = $1 AND user_id = $2`,
+            `SELECT * FROM book WHERE ${columnName} = $1 AND user_id = $2 ORDER BY created_at ASC`,
             [filterValue, userId]
         );
         
@@ -123,11 +123,14 @@ const addBook = async (req, res, next) => {
             return res.status(400).json({ message: 'Book is already in your reading list' });
         }
 
+        // Ensure genres is properly formatted for JSONB
+        const formattedGenres = genres ? JSON.stringify(genres) : null;
+
         //Add book to database
         const result = await pool.query(
             `INSERT INTO book (google_books_id, title, author, description, cover_image, genres, user_id) 
             VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, 
-            [google_books_id, title, author, description, cover_image, genres, userId]
+            [google_books_id, title, author, description, cover_image, formattedGenres, userId]
         );
         
         const book = result.rows[0];
@@ -146,12 +149,12 @@ const addBook = async (req, res, next) => {
 };
 
 // @desc     Edit book status. Ex: want_to_read, currently_reading, completed
-// @route    PUT /api/books/:bookId/status
+// @route    PUT /api/books/status/:bookId/
 // @access   Private
 const updateBookStatus = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT 
-        const { bookId } = req.params; // book ID from URL
+        const { bookId } = req.params; 
         const { status } = req.body; // new status from request body
 
         // Update the book status and return the updated book
@@ -178,13 +181,13 @@ const updateBookStatus = async (req, res, next) => {
 };
 
 // @desc     Add or remove books from favorites
-// @route    PUT /api/books/:bookId/favorite
+// @route    PUT /api/books/favorite/:bookId
 // @access   Private
 const toggleBookFavorite = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT 
         const { bookId } = req.params; // book ID from URL 
-        const { favorite } = req.body; // new favorite value from request body
+        const { favorite } = req.body; // TRUE or FALSE favorite value from request body
 
         // Update whether the book is favorited and return the updated book
         const result = await pool.query(
@@ -201,6 +204,43 @@ const toggleBookFavorite = async (req, res, next) => {
 
         res.json({
             message: 'Book favorite updated successfully',
+            book: bookData
+        });
+
+    } catch (error) {
+        next(error);
+    }
+};
+
+// @desc     Update book rating
+// @route    PUT /api/books/rating/:bookId
+// @access   Private
+const updateBookRating = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id; // From JWT 
+        const { bookId } = req.params; // book ID from URL
+        const { user_rating } = req.body; // rating from request body
+
+        // Validate rating is between 1-5
+        if (user_rating && (user_rating < 1 || user_rating > 5)) {
+            return res.status(400).json({ message: 'Rating must be between 1 and 5' });
+        }
+
+        // Update the book rating and return the updated book
+        const result = await pool.query(
+            'UPDATE book SET user_rating = $1 WHERE book_id = $2 AND user_id = $3 RETURNING *',
+            [user_rating, bookId, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Book not found in your reading list' });
+        }
+
+        const updatedBook = result.rows[0];
+        const bookData = formatBookResponse(updatedBook);
+
+        res.json({
+            message: 'Book rating updated successfully',
             book: bookData
         });
 
@@ -231,7 +271,7 @@ const deleteBook = async (req, res, next) => {
 
         // Get updated book list for reading list page
         const updatedBookListResult = await pool.query(
-            'SELECT * FROM book WHERE user_id = $1',
+            'SELECT * FROM book WHERE user_id = $1 ORDER BY created_at ASC',
             [userId]
         );
         
@@ -259,5 +299,6 @@ export {
     addBook, 
     updateBookStatus, 
     toggleBookFavorite, 
-    deleteBook 
+    updateBookRating,
+    deleteBook
 };

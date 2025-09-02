@@ -1,6 +1,7 @@
 import pool from '../config/db.js';
 
 const formatBookResponse = (dbBook) => ({
+    book_id: dbBook.book_id,
     google_books_id: dbBook.google_books_id,
     title: dbBook.title,
     author: dbBook.author,
@@ -9,6 +10,7 @@ const formatBookResponse = (dbBook) => ({
     genres: dbBook.genres || [],
     status: dbBook.status,
     favorite: dbBook.favorite,
+    user_rating: dbBook.user_rating,
 });
 
 const formatGoogleBookResponse = (googleBook) => ({

@@ -20,8 +20,10 @@ CREATE TABLE book (
     cover_image VARCHAR(255),
     genres JSONB,
     favorite BOOLEAN DEFAULT FALSE,
-    status VARCHAR(20) CHECK (status IN ('want_to_read', 'currently_reading', 'completed')) DEFAULT 'want_to_read',
+    status VARCHAR(20) CHECK (status IN ('to-read', 'currently-reading', 'completed')) DEFAULT 'to-read',
+    user_rating INTEGER CHECK (user_rating >= 1 AND user_rating <= 5),
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, 
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     user_id INTEGER REFERENCES "user"(user_id) ON DELETE CASCADE NOT NULL
 );
+

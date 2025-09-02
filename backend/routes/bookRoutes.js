@@ -7,7 +7,9 @@ import {
     addBook, 
     updateBookStatus, 
     toggleBookFavorite, 
-    deleteBook } from '../controllers/bookController.js';
+    updateBookRating,
+    deleteBook
+ } from '../controllers/bookController.js';
 import { protect } from '../middleware/authMiddleware.js';
 
 
@@ -20,8 +22,9 @@ router.get('/:status', protect, getFilteredBooks);
 router.post('/', protect, addBook);
 
 //PUT routes
-router.put('/:bookId/status', protect, updateBookStatus);
-router.put('/:bookId/favorite', protect, toggleBookFavorite);
+router.put('/status/:bookId', protect, updateBookStatus);
+router.put('/favorite/:bookId', protect, toggleBookFavorite);
+router.put('/rating/:bookId', protect, updateBookRating);
 
 //DELETE routes
 router.delete('/:bookId', protect, deleteBook);
