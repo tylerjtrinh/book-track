@@ -1,60 +1,255 @@
 import pool from '../config/db.js';
+import { formatBookResponse, checkBookExists } from '../utils/bookUtils.js';
 
 // @desc     Get all books in users database
 // @route    GET /api/books
 // @access   Private
 const getAllBooks = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id; // From JWT (guaranteed by protect middleware)
 
+        //GET all books from users reading list
+        const result = await pool.query(
+            'SELECT * FROM book WHERE user_id = $1',
+            [userId]
+        );
+
+        const formattedBooks = result.rows.map(formatBookResponse);
+
+        res.json({
+            books: formattedBooks,
+            count: formattedBooks.length
+        });
+
+    } catch (error) {
+        next(error);
+    }
 };
 
-// @desc     Get filtered books in users database. Ex: completed books
+// @desc     Get filtered books in users database. Ex: completed books, favorite books
 // @route    GET /api/books/:status
 // @access   Private
 const getFilteredBooks = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id; // From JWT 
+        const { status } = req.params;
+        
+        // Determine which column to filter by
+        let columnName = 'status';
+        let filterValue = status;
+        
+        if (status === 'favorite') {
+            columnName = 'favorite';
+            filterValue = true; // favorites are boolean true
+        }
 
+        // GET filtered books from user's reading list
+        const result = await pool.query(
+            `SELECT * FROM book WHERE ${columnName} = $1 AND user_id = $2`,
+            [filterValue, userId]
+        );
+        
+        const formattedBooks = result.rows.map(formatBookResponse);
+
+        res.json({
+            books: formattedBooks,
+            count: formattedBooks.length
+        });
+
+    } catch (error) {
+        next(error);
+    }
 };
 
-// @desc     Get data from one book. First check if the book is in the users book table. 
-//           If not in database then fetch from google book API.
-// @route    GET /api/books/:googleBookId
+// @desc     Get data from one book. Book Details
+//           First check if the book is in the users book table. 
+//           Returns different responses based on book status.
+//           Does NOT fetch from Google Books API to preserve server quota.
+// @route    GET /api/books/details/:googleBookId
 // @access   Private
 const getBook = async (req, res, next) => {
-    const { googleBookId } = req.params;
-    const userId = req.user.user_id; //get the id from the jwt
+    try {
+        const userId = req.user.user_id; //FROM JWT
+        const { googleBookId } = req.params;
+        
+        // Check if book is already in user's reading list
+        const result = await pool.query(
+            'SELECT * FROM book WHERE google_books_id = $1 AND user_id = $2',
+            [googleBookId, userId]
+        );
 
-    //Check if book is in database in the book table
-    
-
-    //If book is not in database then fetch the book information from the google book api
-
+        if (result.rows.length > 0) {
+            // User is logged in and book is in their table
+            const dbBook = result.rows[0];
+            const bookData = formatBookResponse(dbBook);
+            
+            res.status(200).json({
+                isInUserList: true,
+                ...bookData
+            });
+        } else {
+            // User is logged in but book is not in their table
+            res.status(200).json({
+                isInUserList: false,
+                googleBooksId: googleBookId,
+                message: 'Book not in your reading list. Frontend should fetch from Google Books API.'
+            });
+        }
+    } catch (error) {
+        //User is not logged in
+        next(error);
+    }
 };
 
-// @desc     Add book to database. Add to book table
+// @desc     Add book to database. Add to book table. Book data sent from the front end
 // @route    POST /api/books
 // @access   Private
 const addBook = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id; // From JWT
+        const { 
+            google_books_id,                           
+            title, 
+            author, 
+            description, 
+            cover_image,
+            genres 
+        } = req.body; // Book data from frontend
 
+        // Check if book already exists in user's list
+        const existingBook = await checkBookExists(google_books_id, userId);
+
+        if (existingBook) {
+            return res.status(400).json({ message: 'Book is already in your reading list' });
+        }
+
+        //Add book to database
+        const result = await pool.query(
+            `INSERT INTO book (google_books_id, title, author, description, cover_image, genres, user_id) 
+            VALUES ($1, $2, $3, $4, $5, $6, $7) RETURNING *`, 
+            [google_books_id, title, author, description, cover_image, genres, userId]
+        );
+        
+        const book = result.rows[0];
+        const bookData = formatBookResponse(book);
+        
+        res.status(201).json({
+            message: 'Book added successfully',
+            book: {
+                ...bookData,
+                isInUserList: true
+            }
+        });
+    } catch (error) {
+        next(error);
+    }
 };
 
 // @desc     Edit book status. Ex: want_to_read, currently_reading, completed
-// @route    PUT /api/books/:id/status
+// @route    PUT /api/books/:bookId/status
 // @access   Private
 const updateBookStatus = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id; // From JWT 
+        const { bookId } = req.params; // book ID from URL
+        const { status } = req.body; // new status from request body
 
+        // Update the book status and return the updated book
+        const result = await pool.query(
+            'UPDATE book SET status = $1 WHERE book_id = $2 AND user_id = $3 RETURNING *',
+            [status, bookId, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Book not found in your reading list' });
+        }
+
+        const updatedBook = result.rows[0];
+        const bookData = formatBookResponse(updatedBook);
+
+        res.json({
+            message: 'Book status updated successfully',
+            book: bookData
+        });
+
+    } catch (error) {
+        next(error);
+    }
 };
 
 // @desc     Add or remove books from favorites
-// @route    PUT /api/books/:id/favorite
+// @route    PUT /api/books/:bookId/favorite
 // @access   Private
 const toggleBookFavorite = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id; // From JWT 
+        const { bookId } = req.params; // book ID from URL 
+        const { favorite } = req.body; // new favorite value from request body
 
+        // Update whether the book is favorited and return the updated book
+        const result = await pool.query(
+            'UPDATE book SET favorite = $1 WHERE book_id = $2 AND user_id = $3 RETURNING *',
+            [favorite, bookId, userId]
+        );
+
+        if (result.rows.length === 0) {
+            return res.status(404).json({ message: 'Book not found in your reading list' });
+        }
+
+        const updatedBook = result.rows[0];
+        const bookData = formatBookResponse(updatedBook);
+
+        res.json({
+            message: 'Book favorite updated successfully',
+            book: bookData
+        });
+
+    } catch (error) {
+        next(error);
+    }
 };
 
 // @desc     Delete book from user's reading list
-// @route    PUT /api/books/:id/favorite
+// @route    DELETE /api/books/:bookId
 // @access   Private
 const deleteBook = async (req, res, next) => {
+    try {
+        const userId = req.user.user_id; // From JWT 
+        const { bookId } = req.params;
 
+        // DELETE book from users reading list
+        const result = await pool.query(
+            'DELETE FROM book WHERE book_id = $1 AND user_id = $2 RETURNING *',
+            [bookId, userId]
+        );
+
+        if (result.rows.length === 0) {
+            // Book didn't exist - return 404 and stop here
+            return res.status(404).json({ message: 'Book not found' });
+        }
+        //Only continue here if book was actually deleted
+
+        // Get updated book list for reading list page
+        const updatedBookListResult = await pool.query(
+            'SELECT * FROM book WHERE user_id = $1',
+            [userId]
+        );
+        
+        const updatedBookList = updatedBookListResult.rows.map(formatBookResponse);
+
+        // Response works for both scenarios:
+        // - Reading list page: uses 'books' array to update the list
+        // - Book detail page: uses 'isInUserList: false' to update status
+        res.status(200).json({
+            message: 'Book removed from reading list',
+            isInUserList: false,
+            books: updatedBookList,
+            count: updatedBookList.length
+        });
+
+    } catch (error) {
+        next(error);
+    }
 };
 
 export { 

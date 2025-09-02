@@ -13,18 +13,18 @@ import { protect } from '../middleware/authMiddleware.js';
 
 //GET routes
 router.get('/', protect, getAllBooks);
+router.get('/details/:googleBookId', protect, getBook); 
 router.get('/:status', protect, getFilteredBooks);
-router.get('/googleBookId', protect, getBook);
 
 //POST routes
 router.post('/', protect, addBook);
 
 //PUT routes
-router.put('/:id/status', protect, updateBookStatus);
-router.put('/:id/favorite', toggleBookFavorite);
+router.put('/:bookId/status', protect, updateBookStatus);
+router.put('/:bookId/favorite', protect, toggleBookFavorite);
 
 //DELETE routes
-router.delete('/:id', protect, deleteBook);
+router.delete('/:bookId', protect, deleteBook);
 
 
 
