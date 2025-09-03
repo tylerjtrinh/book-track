@@ -16,7 +16,7 @@ const Hero = () => {
             Built with Google Books integration and real-time bestseller updates.
           </p>
           <NavLink 
-            to="/signin" 
+            to="/login" 
             className="inline-block bg-blue-700 hover:bg-blue-600 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
           >
             Get Started
