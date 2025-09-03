@@ -13,7 +13,7 @@ const Hero = () => {
             Manage your reading list, discover NYT Best Sellers, and track your reading journey with our database.
           </p>
           <p className="text-base sm:text-lg text-slate-400 mb-8 leading-relaxed">
-            Built with Google Books integration and real-time bestseller updates.
+            Built with Google Books integration and weekly bestseller updates.
           </p>
           <NavLink 
             to="/login" 
