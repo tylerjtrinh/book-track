@@ -6,7 +6,8 @@
   "main": "index.js",
   "scripts": {
     "start": "node backend/server.js",
-    "server": "node --watch backend/server.js"
+    "server": "node --watch backend/server.js",
+    "sync-nyt": "node backend/sync/nytSync.js"
   },
   "keywords": [],
   "author": "",

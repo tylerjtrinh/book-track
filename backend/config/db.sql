@@ -27,3 +27,21 @@ CREATE TABLE book (
     user_id INTEGER REFERENCES "user"(user_id) ON DELETE CASCADE NOT NULL
 );
 
+-- Table to store books fetched from NYT API for explore page
+-- This table is read-only from the app's perspective
+-- Data is periodically synced with new data from NYT API
+CREATE TABLE explore_books (
+    id SERIAL PRIMARY KEY,
+    google_books_id VARCHAR(50),
+    title VARCHAR(255) NOT NULL,
+    author VARCHAR(255) NOT NULL,
+    book_image VARCHAR(500),
+    isbn_13 VARCHAR(20),
+    isbn_10 VARCHAR(15),
+    list_name VARCHAR(100) NOT NULL,
+    list_name_encoded VARCHAR(100) NOT NULL,
+    rank INTEGER NOT NULL,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
+

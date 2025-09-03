@@ -8,10 +8,11 @@ import cors from 'cors';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import userRoutes from './routes/userRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
+import exploreRoutes from './routes/exploreRoutes.js';
 
 const port = process.env.PORT || 5000;
 
-const app = express()
+const app = express();
 
 //Middleware
 app.use(cors());
@@ -21,8 +22,9 @@ app.use(express.json()); //req.body
 app.use(express.urlencoded({ extended: true}));
 
 //Routes
-app.use('/api/users', userRoutes);
-app.use('/api/books', bookRoutes);
+app.use('/api/users', userRoutes);          //For user login
+app.use('/api/books', bookRoutes);          //For adding, updating or removing books from reading list
+app.use('/api/explore', exploreRoutes);     //For the explore page
 
 //FOR NOW probably change later
 app.get('/', (req, res) => res.send('Server is ready'));
