@@ -1,11 +1,52 @@
-import { NavLink } from "react-router-dom";
-import { IoIosSearch } from "react-icons/io";
+import { NavLink, useNavigate } from "react-router-dom";
+import { useSelector, useDispatch } from 'react-redux';
+import { useState, useEffect, useRef } from 'react';
+import { useLogoutMutation } from "../slices/usersApiSlice";
+import { clearCredentials } from '../slices/authSlice';
+import { IoIosSearch, IoIosArrowDown } from "react-icons/io";
 
 const Navbar = () => {
-  const linkClass = ({ isActive }) =>
-    isActive
-      ? "text-white hover:text-blue-200 hover:bg-slate-600 rounded-lg px-4 py-2 text-base font-medium transition-colors duration-200"
-      : "text-white hover:text-blue-200 hover:bg-slate-600 rounded-lg px-4 py-2 text-base font-medium transition-colors duration-200";
+  const { userInfo } = useSelector((state) => state.auth);
+
+  const dispatch = useDispatch();
+  const navigate = useNavigate();
+  const [logout] = useLogoutMutation();
+
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  
+  const logoutHandler = async () => {
+    try {
+        //Sending post request to users API to logout
+        await logout().unwrap();
+        dispatch(clearCredentials());
+        setIsDropdownOpen(false);
+        navigate('/');
+    } catch (error) {
+        console.log(error);
+    }
+  };
+
+  const toggleDropdown = () => {
+    setIsDropdownOpen(!isDropdownOpen);
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
+    
+  const linkClass = 
+  "text-white hover:text-blue-200 hover:bg-slate-600 rounded-lg px-4 py-2 text-base font-medium transition-colors duration-200";
   
   return (
     <nav className="bg-slate-700 border-b border-slate-400">
@@ -38,14 +79,49 @@ const Navbar = () => {
           {/* Navigation Links - Right */}
           <div className="flex items-center space-x-2">
             <NavLink to="/" className={linkClass}>
-              <span className="hidden sm:inline">Explore</span> 
+              <span className="hidden sm:inline">Home</span> 
             </NavLink>
             <NavLink to="/my-list" className={linkClass}>
               My List
             </NavLink>
-            <NavLink to="/login" className={linkClass}>
-              Login
-            </NavLink>
+            { userInfo ? (
+                <>
+                  {/* User Dropdown */}
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={toggleDropdown}
+                      className="flex items-center space-x-2 text-white hover:text-blue-200 hover:bg-slate-600 rounded-lg px-4 py-2 text-base font-medium transition-colors duration-200 cursor-pointer"
+                    >
+                      {userInfo.username}
+                      <IoIosArrowDown className={`h-4 w-4 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    
+                    {/* Dropdown Menu */}
+                    {isDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-48 bg-slate-600 rounded-lg shadow-lg border border-slate-500 z-50">
+                        <div className="py-1">
+                          <NavLink
+                            to="/profile" onClick={toggleDropdown}
+                            className="block px-4 py-2 text-sm text-white hover:bg-slate-500 cursor-pointer">
+                            Profile
+                          </NavLink>
+                          <button
+                            onClick={logoutHandler}
+                            className="block w-full text-left px-4 py-2 text-sm text-white hover:bg-slate-500 cursor-pointer">
+                            Logout
+                          </button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+            ) : (
+                <>
+                <NavLink to="/login" className={linkClass}>
+                Login
+                </NavLink>
+                </>
+            ) }
           </div>
         </div>
         
