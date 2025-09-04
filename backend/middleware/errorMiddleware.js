@@ -12,15 +12,15 @@ const errorHandler = (err, req, res, next) => {
     if (err.code === '23505') {
         // Unique constraint violation
         statusCode = 400;
-        
-        // Check which field caused the violation
-        if (err.detail && err.detail.includes('username')) {
-            message = 'Username already exists';
-        } else if (err.detail && err.detail.includes('email')) {
-            message = 'Email already exists';
-        } else {
-            message = 'Resource already exists';
+        if (err.constraint === 'user_username_key') {
+            return res.status(400).json({ 
+            error: 'Username already exists' 
+            });
         }
+        // Generic unique constraint error
+        return res.status(400).json({ 
+            error: 'User with this information already exists' 
+        });
     } else if (err.code === '23502') {
         // Not null constraint violation
         statusCode = 400;
