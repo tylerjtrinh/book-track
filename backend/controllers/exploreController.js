@@ -18,6 +18,41 @@ const getAvailableLists = async (req, res, next) => {
     }
 };
 
+// @desc     Get all NYT books grouped by list
+// @route    GET /api/explore/all
+// @access   Public
+const getAllBooks = async (req, res, next) => {
+    try {
+        const result = await pool.query(
+            `SELECT * FROM explore_books 
+             WHERE google_books_id IS NOT NULL
+             ORDER BY list_name, rank`
+        );
+        
+        // Group books by list_name
+        const booksByList = result.rows.reduce((groupedLists, book) => {
+            if (!groupedLists[book.list_name]) {
+                // If this list doesn't exist yet
+                groupedLists[book.list_name] = {
+                    listName: book.list_name,
+                    listNameEncoded: book.list_name_encoded,
+                    books: []
+                };
+            }
+            groupedLists[book.list_name].books.push(book);
+            return groupedLists;
+        }, {});
+        
+        res.json({
+            success: true,
+            lists: Object.values(booksByList)
+        });
+    } catch (error) {
+        next(error);
+    }
+};
+
+
 // @desc     Get books from a specific NYT list (with Google Books IDs)
 // @route    GET /api/explore/list/:listName
 // @access   Public
@@ -46,13 +81,13 @@ const getBooksByList = async (req, res, next) => {
 const getPopularBooks = async (req, res, next) => {
     try {
         const result = await pool.query(
-            `SELECT * FROM explore_books 
-             WHERE rank <= 5 AND google_books_id IS NOT NULL
+            `SELECT DISTINCT ON (title, author) * FROM explore_books 
+             WHERE rank <= 7 AND google_books_id IS NOT NULL
              AND list_name NOT ILIKE '%children%' 
              AND list_name NOT ILIKE '%picture%'
              AND list_name NOT ILIKE '%middle grade%'
-             ORDER BY list_name, rank 
-             LIMIT 20`
+             ORDER BY title, author, rank, list_name 
+             LIMIT 70`
         );
         
         res.json({
@@ -66,6 +101,7 @@ const getPopularBooks = async (req, res, next) => {
 
 export { 
     getAvailableLists, 
+    getAllBooks,
     getBooksByList, 
     getPopularBooks 
 };
