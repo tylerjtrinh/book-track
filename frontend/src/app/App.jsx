@@ -39,7 +39,14 @@ const App = () => {
   return (
     <>
       <RouterProvider router={router} />
-      <ToastContainer theme="dark" />
+      <ToastContainer 
+        autoClose={1000}
+        hideProgressBar={true}
+        newestOnTop={false}
+        pauseOnFocusLoss={false}
+        pauseOnHover={false}
+        closeOnClick
+      theme="dark" />
     </>
   );
 }

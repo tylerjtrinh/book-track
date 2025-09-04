@@ -31,6 +31,7 @@ const LoginPage = () => {
       const res = await login({username, password}).unwrap();
       //Set to state and localstorage
       dispatch(setCredentials({...res})); 
+      toast.success("Logged in!");
       navigate('/');
     } catch (err) {
         const errorMessage = err?.data?.message || err.error || 'Login failed';
