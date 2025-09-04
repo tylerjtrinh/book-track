@@ -4,6 +4,8 @@ import {
   createRoutesFromElements,
   RouterProvider,
 } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 
 //Layouts
 import MainLayout from './layouts/MainLayout';
@@ -34,7 +36,12 @@ const App = () => {
       }
   );
 
-  return <RouterProvider router={router} />;
+  return (
+    <>
+      <RouterProvider router={router} />
+      <ToastContainer theme="dark" />
+    </>
+  );
 }
 
 export default App
