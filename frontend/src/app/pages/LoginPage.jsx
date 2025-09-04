@@ -4,6 +4,7 @@ import  { useSelector, useDispatch } from 'react-redux';
 import { useLoginMutation } from '../slices/usersApiSlice';
 import { setCredentials } from '../slices/authSlice';
 import { toast } from 'react-toastify';
+import Spinner from '../components/Spinner';
 
 
 const LoginPage = () => {
@@ -70,6 +71,8 @@ const LoginPage = () => {
               className="w-full bg-slate-500 border border-slate-400 rounded-lg px-4 py-3 text-white placeholder-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
           </div>
+
+          {isLoading && <Spinner />}
           
           {/* Sign In Button */}
           <button
