@@ -1,5 +1,9 @@
-import {useState} from 'react';
-import {Link} from 'react-router-dom';
+import { useState, useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useRegisterMutation } from '../slices/usersApiSlice';
+import { setCredentials } from '../slices/authSlice';
+import { useSelector, useDispatch } from 'react-redux';
+import { toast } from 'react-toastify';
 
 const RegisterPage = () => {
   const [username, setUsername] = useState('');
@@ -7,8 +11,36 @@ const RegisterPage = () => {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState(''); 
 
-  const submitHandler = () => {
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  
+  const [register, {isLoading}] = useRegisterMutation();
+
+  const { userInfo } = useSelector((state) => state.auth);
+  useEffect(() => {
+      if(userInfo) {
+        navigate('/');
+      }
+  }, [navigate, userInfo])
+
+  const submitHandler = async (e) => {
+    e.preventDefault(); 
+    if(password !== confirmPassword) {
+      toast.error("Passwords don't match");
+      return;
+    }
     
+    try {
+      //post request to backend
+      const res = await register({username, email, password}).unwrap();
+      dispatch(setCredentials({...res}));
+      toast.success('Registration successful!');
+      navigate('/');
+    } catch (err) {
+        const errorMessage = err?.data?.error || err?.data?.message || err.error || 'Registration failed';
+        toast.error(errorMessage);
+        console.log(err);
+    }
   }
   return (
     <div className="bg-slate-700 min-h-screen flex items-center justify-center px-4">

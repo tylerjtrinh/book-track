@@ -10,7 +10,7 @@ const Spinner = ( {loading} ) => {
         color='#000000'
         loading={loading}
         cssOverride={override}
-        size={35}
+        size={25}
         speedMultiplier={0.5}
     />
   )
