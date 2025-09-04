@@ -1,12 +1,39 @@
-import {useState} from 'react';
-import {Link} from 'react-router-dom';
+import {useState, useEffect} from 'react';
+import {Link, useNavigate} from 'react-router-dom';
+import  { useSelector, useDispatch } from 'react-redux';
+import { useLoginMutation } from '../slices/usersApiSlice';
+import { setCredentials } from '../slices/authSlice';
+
 
 const LoginPage = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
-  const submitHandler = () => {
-    
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+
+  const [login, {isLoading}] = useLoginMutation();
+
+  const { userInfo } = useSelector((state) => state.auth);
+
+  //Redirect to homepage if logged in already
+  useEffect(() => {
+    if(userInfo) {
+      navigate('/');
+    }
+  }, [navigate, userInfo])
+
+  const submitHandler = async (e) => {
+    e.preventDefault(); // Prevent form from refreshing page
+    try {
+      //makes the post request to backend using usersApiSlice
+      const res = await login({username, password}).unwrap();
+      //Set to state and localstorage
+      dispatch(setCredentials({...res})); 
+      navigate('/');
+    } catch (err) {
+        console.log(err?.data?.message || err.error);
+    }
   }
   return (
     <div className="bg-slate-700 min-h-screen flex items-center justify-center px-4">
@@ -18,7 +45,7 @@ const LoginPage = () => {
         
         {/* Login Form */}
         <form onSubmit={submitHandler} className="space-y-6">
-          {/* Email Input */}
+          {/* Username Input */}
           <div>
             <input
               type="text"
