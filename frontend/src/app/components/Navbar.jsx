@@ -60,7 +60,7 @@ const Navbar = () => {
         {/* Main navbar content */}
         <div className="flex h-20 items-center justify-between">
           {/* Logo/Title - Left */}
-          <div className="flex items-center">
+          <div className="flex-1">
             <NavLink className="flex items-center" to="/">
               <span className="text-white text-xl font-bold hover:text-blue-200">
                 📘 BookTrack
@@ -75,7 +75,7 @@ const Navbar = () => {
           />
 
           {/* Navigation Links - Right */}
-          <div className="flex items-center space-x-2">
+          <div className="flex-1 flex justify-end space-x-2">
             <NavLink to="/" className={linkClass}>
               <span className="hidden sm:inline">Home</span> 
             </NavLink>
