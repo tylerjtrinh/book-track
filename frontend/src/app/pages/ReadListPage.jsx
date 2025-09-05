@@ -1,9 +1,10 @@
-import {useGetBooksQuery} from '../slices/userBooksApiSlice';
-import  { useSelector } from 'react-redux';
+import { useGetBooksQuery, useDeleteBookMutation } from '../slices/userBooksApiSlice';
+import { useSelector } from 'react-redux';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FaBookmark } from "react-icons/fa";
 import Spinner from '../components/Spinner';
+import { toast } from 'react-toastify';
 
 const ReadList = () => {
   const [activeFilter, setActiveFilter] = useState('All');
@@ -14,6 +15,8 @@ const ReadList = () => {
   const { data: userBooks, error: userBooksError, isLoading: userBooksLoading } = useGetBooksQuery(undefined, {
     skip: !userInfo // Skip API call if user is not logged in
   });
+
+  const [deleteBook, { isLoading: isDeleting }] = useDeleteBookMutation();
 
   const filterButtons = ['All', 'Favorited', 'Completed', 'Currently Reading', 'To-Read'];
 
@@ -28,6 +31,16 @@ const ReadList = () => {
     return activeFilter === filter
       ? `${baseClass} bg-blue-600 text-white`
       : `${baseClass} bg-slate-600 text-slate-300 hover:bg-slate-500 hover:text-white cursor-pointer`;
+  };
+
+  const handleDeleteBook = async (bookId) => {
+  try {
+    await deleteBook(bookId).unwrap();
+    toast.success('Book deleted');
+  } catch (error) {
+    console.error('Failed to delete book:', error);
+    toast.error('Failed to delete book')
+  }
   };
   
 
@@ -76,7 +89,7 @@ const ReadList = () => {
     filteredBooksList = filterBooks(userBooks.books, activeFilter);
     
     mappedBooks = filteredBooksList.map(book => ({
-      id: book.id,
+      id: book.book_id,
       title: book.title || 'Untitled',
       author: book.author || 'Unknown Author',
       image: book.cover_image || "https://via.placeholder.com/150x200"
@@ -124,18 +137,6 @@ const ReadList = () => {
               </Link>
             </div>
           </div>
-        ) : mappedBooks.length === 0 ? (
-          // Logged in but no books
-          <div className="text-center py-12">
-            <div className="bg-slate-600 rounded-lg p-8 max-w-md mx-auto">
-              <h2 className="text-xl font-semibold text-white mb-4">
-                Your bookshelf is empty
-              </h2>
-              <p className="text-slate-300 mb-6">
-                Start adding books to build your reading list!
-              </p>
-            </div>
-          </div>
         ) : (
           // Logged in with books - Show books grid
           <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
@@ -159,6 +160,7 @@ const ReadList = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           // Handle remove from bookshelf logic here
+                          handleDeleteBook(book.id);
                         }}
                         className="bg-transparent hover:bg-slate-400 text-slate-300 hover:text-white p-1 rounded transition-colors duration-200">
                         <FaBookmark className="cursor-pointer h-4 w-4" />
