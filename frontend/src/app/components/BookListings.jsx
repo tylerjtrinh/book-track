@@ -1,6 +1,7 @@
 import { useGetAllBooksQuery, useGetPopularBooksQuery } from "../slices/exploreApiSlice";
 import { FaAngleLeft, FaAngleRight } from "react-icons/fa6";
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import Spinner from "./Spinner";
 
 const BookListings = () => {
@@ -149,6 +150,7 @@ const BookListings = () => {
                       className="flex-shrink-0 cursor-pointer"
                       style={{ width: '180px' }}
                     >
+                      <Link to={`/book/${book.title}/${book.id}`}>
                       {/* Book Cover Container */}
                       <div className="bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors duration-200 mb-3 overflow-hidden">
                         <img 
@@ -157,7 +159,7 @@ const BookListings = () => {
                           className="w-full aspect-[2/3] object-cover"
                         />
                       </div>
-                      
+                      </Link>
                       {/* Book Info - Outside the gray box */}
                       <div className="px-1">
                         <h3 className="text-white font-medium text-sm mb-1 line-clamp-1 leading-tight">

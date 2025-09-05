@@ -74,13 +74,15 @@ const SearchResultsPage = () => {
                     >
                     {/* Book Cover Container */}
                     <div className="bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors duration-200 mb-3 overflow-hidden">
+                        <Link to={`/book/${book.title}/${book.id}`}>
                         <img 
                             src={book.image} 
                             alt={book.title}
                             className="w-full aspect-[2/3] object-cover"
                             />
+                        </Link>  
                         </div>
-                          
+                        
                         {/* Book Info - Outside the gray box */}
                         <div className="px-1 mb-10">
                             <h3 className="text-white font-medium text-sm mb-1 line-clamp-1 leading-tight">

@@ -147,12 +147,13 @@ const ReadList = () => {
               >
                 {/* Book Cover Container */}
                 <div className="bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors duration-200 mb-3 overflow-hidden relative">
+                  <Link to={`/book/${book.title}/${book.id}`}>
                   <img 
                     src={book.image} 
                     alt={book.title}
                     className="w-full aspect-[2/3] object-cover"
                   />
-                  
+                  </Link>
                   {/* Bookmark Icon - positioned over the image */}
                   <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                     <div className="group/bookmark relative">
