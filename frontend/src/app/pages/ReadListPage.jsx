@@ -1,27 +1,12 @@
-import { useState } from 'react';
+import {useGetBooksQuery, useGetFilteredBooksQuery} from '../slices/userBooksApiSlice';
+import { useState, useEffect } from 'react';
 import { FaBookmark } from "react-icons/fa";
+import Spinner from '../components/Spinner';
 
 const ReadList = () => {
   const [activeFilter, setActiveFilter] = useState('All');
   
-  // Template data - will be replaced with user's books from database
-  const userBooks = [
-        { id: 1, title: "Book 1", author: "Author 1", image: "https://via.placeholder.com/150x200" },
-        { id: 2, title: "Book 2", author: "Author 2", image: "https://via.placeholder.com/150x200" },
-        { id: 3, title: "Book 3", author: "Author 3", image: "https://via.placeholder.com/150x200" },
-        { id: 4, title: "Book 4", author: "Author 4", image: "https://via.placeholder.com/150x200" },
-        { id: 5, title: "Book 5", author: "Author 5", image: "https://via.placeholder.com/150x200" },
-        { id: 1, title: "Book 1", author: "Author 1", image: "https://via.placeholder.com/150x200" },
-        { id: 2, title: "Book 2", author: "Author 2", image: "https://via.placeholder.com/150x200" },
-        { id: 3, title: "Book 3", author: "Author 3", image: "https://via.placeholder.com/150x200" },
-        { id: 4, title: "Book 4", author: "Author 4", image: "https://via.placeholder.com/150x200" },
-        { id: 5, title: "Book 5", author: "Author 5", image: "https://via.placeholder.com/150x200" },
-        { id: 1, title: "Book 1", author: "Author 1", image: "https://via.placeholder.com/150x200" },
-        { id: 2, title: "Book 2", author: "Author 2", image: "https://via.placeholder.com/150x200" },
-        { id: 3, title: "Book 3", author: "Author 3", image: "https://via.placeholder.com/150x200" },
-        { id: 4, title: "Book 4", author: "Author 4", image: "https://via.placeholder.com/150x200" },
-        { id: 5, title: "Book 5", author: "Author 5", image: "https://via.placeholder.com/150x200" },
-  ];
+  const { data: userBooks, error: userBooksError, isLoading: userBooksLoading } = useGetBooksQuery();
 
   const filterButtons = ['All', 'Favorited', 'Completed', 'Currently Reading', 'To-Read'];
 
@@ -29,6 +14,31 @@ const ReadList = () => {
     activeFilter === filter
       ? "bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
       : "bg-slate-600 text-slate-300 hover:bg-slate-500 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer";
+  
+  if (userBooksLoading) {
+  return (
+    <div className="bg-slate-700 min-h-screen flex items-center justify-center">
+        <Spinner />
+    </div>
+  );
+  }
+  
+  // Handle error state
+  if (userBooksError) {
+    return (
+    <div className="bg-slate-700 min-h-screen flex items-center justify-center">
+      <div className="text-red-400 text-xl">Error loading books</div>
+    </div>
+  );
+  }
+
+  console.log(userBooks);
+  const mappedBooks = userBooks.books.map(book => ({
+    id: book.id,
+    title: book.title || 'Untitled',
+    author: book.author || 'Unknown Author',
+    image: book.cover_image || "https://via.placeholder.com/150x200"
+  }));
 
   return (
     <div className="bg-slate-700 min-h-screen">
@@ -53,33 +63,21 @@ const ReadList = () => {
         
         {/* Books Grid */}
         <div className="grid grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-7 gap-4">
-          {userBooks.map((book) => (
+          {mappedBooks.map((book) => (
             <div 
               key={book.id} 
-              className="bg-slate-600 rounded-lg p-3 hover:bg-slate-500 transition-colors duration-200 cursor-pointer group"
+              className="cursor-pointer group"
             >
-              {/* Book Cover */}
-              <div className="w-full aspect-[3/4] mb-3">
+              {/* Book Cover Container */}
+              <div className="bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors duration-200 mb-3 overflow-hidden relative">
                 <img 
                   src={book.image} 
                   alt={book.title}
-                  className="w-full h-full object-cover rounded-md"
+                  className="w-full aspect-[2/3] object-cover"
                 />
-              </div>
-              
-              {/* Book Info */}
-              <div className="flex justify-between items-end">
-                <div className="flex-1">
-                  <h3 className="text-white font-medium text-xs sm:text-sm mb-1 line-clamp-2">
-                    {book.title}
-                  </h3>
-                  <p className="text-slate-300 text-xs">
-                    {book.author}
-                  </p>
-                </div>
                 
-                {/* Bookmark Icon */}
-                <div className="opacity-0 group-hover:opacity-100 transition-opacity duration-200 ml-2">
+                {/* Bookmark Icon - positioned over the image */}
+                <div className="absolute bottom-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                   <div className="group/bookmark relative">
                     <button
                       onClick={(e) => {
@@ -97,6 +95,16 @@ const ReadList = () => {
                     </div>
                   </div>
                 </div>
+              </div>
+              
+              {/* Book Info - Outside the gray box */}
+              <div className="px-1">
+                <h3 className="text-white font-medium text-sm mb-1 line-clamp-1 leading-tight">
+                  {book.title}
+                </h3>
+                <p className="text-slate-300 text-xs line-clamp-1">
+                  {book.author}
+                </p>
               </div>
             </div>
           ))}
