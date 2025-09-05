@@ -26,41 +26,6 @@ const getAllBooks = async (req, res, next) => {
     }
 };
 
-// @desc     Get filtered books in users database. Ex: completed books, favorite books
-// @route    GET /api/books/:status
-// @access   Private
-const getFilteredBooks = async (req, res, next) => {
-    try {
-        const userId = req.user.user_id; // From JWT 
-        const { status } = req.params;
-        
-        // Determine which column to filter by
-        let columnName = 'status';
-        let filterValue = status;
-        
-        if (status === 'favorite') {
-            columnName = 'favorite';
-            filterValue = true; // favorites are boolean true
-        }
-
-        // GET filtered books from user's reading list
-        const result = await pool.query(
-            `SELECT * FROM book WHERE ${columnName} = $1 AND user_id = $2 ORDER BY created_at ASC`,
-            [filterValue, userId]
-        );
-        
-        const formattedBooks = result.rows.map(formatBookResponse);
-
-        res.json({
-            books: formattedBooks,
-            count: formattedBooks.length
-        });
-
-    } catch (error) {
-        next(error);
-    }
-};
-
 // @desc     Get data from one book. Book Details
 //           First check if the book is in the users book table. 
 //           Returns different responses based on book status.
@@ -294,7 +259,6 @@ const deleteBook = async (req, res, next) => {
 
 export { 
     getAllBooks, 
-    getFilteredBooks,
     getBook, 
     addBook, 
     updateBookStatus, 

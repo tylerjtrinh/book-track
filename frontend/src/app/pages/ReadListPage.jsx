@@ -1,4 +1,4 @@
-import {useGetBooksQuery, useGetFilteredBooksQuery} from '../slices/userBooksApiSlice';
+import {useGetBooksQuery} from '../slices/userBooksApiSlice';
 import { useState, useEffect } from 'react';
 import { FaBookmark } from "react-icons/fa";
 import Spinner from '../components/Spinner';
@@ -15,12 +15,31 @@ const ReadList = () => {
       ? "bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
       : "bg-slate-600 text-slate-300 hover:bg-slate-500 hover:text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200 cursor-pointer";
   
+  const filterBooks = (books, activeFilter) => {
+    if (activeFilter === 'All') return books;
+  
+    return books.filter(book => {
+      switch(activeFilter) {
+        case 'Favorited': 
+          return book.favorite === true;
+        case 'Completed': 
+          return book.status === 'completed';
+        case 'Currently Reading': 
+          return book.status === 'currently-reading';
+        case 'To-Read': 
+          return book.status === 'to-read';
+        default: 
+          return true;
+      }
+    });
+  };
+
   if (userBooksLoading) {
-  return (
-    <div className="bg-slate-700 min-h-screen flex items-center justify-center">
-        <Spinner />
-    </div>
-  );
+    return (
+      <div className="bg-slate-700 min-h-screen flex items-center justify-center">
+          <Spinner />
+      </div>
+    );
   }
   
   // Handle error state
@@ -33,7 +52,11 @@ const ReadList = () => {
   }
 
   console.log(userBooks);
-  const mappedBooks = userBooks.books.map(book => ({
+  
+  // Filter the books based on active filter
+  const filteredBooksList = filterBooks(userBooks?.books || [], activeFilter);
+  
+  const mappedBooks = filteredBooksList.map(book => ({
     id: book.id,
     title: book.title || 'Untitled',
     author: book.author || 'Unknown Author',

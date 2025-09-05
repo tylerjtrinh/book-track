@@ -9,13 +9,8 @@ export const userBooksApiSlice = apiSlice.injectEndpoints({
                 method: 'GET'
             })
         }),
-        getFilteredBooks: builder.query({
-            query: (status) => ({
-                url: `${BOOK_URL}/status`,
-                method: 'GET'
-            })
-        })
+        
     })
 })
 
-export const { useGetBooksQuery, useGetFilteredBooksQuery } = userBooksApiSlice;
+export const { useGetBooksQuery } = userBooksApiSlice;

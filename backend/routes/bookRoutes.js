@@ -2,7 +2,6 @@ import express from 'express';
 const router = express.Router();
 import { 
     getAllBooks, 
-    getFilteredBooks,
     getBook, 
     addBook, 
     updateBookStatus, 
@@ -16,7 +15,6 @@ import { protect } from '../middleware/authMiddleware.js';
 //GET routes
 router.get('/', protect, getAllBooks);
 router.get('/details/:googleBookId', protect, getBook); 
-router.get('/:status', protect, getFilteredBooks);
 
 //POST routes
 router.post('/', protect, addBook);
