@@ -90,6 +90,7 @@ const ReadList = () => {
     
     mappedBooks = filteredBooksList.map(book => ({
       id: book.book_id,
+      googleBookId: book.google_books_id,
       title: book.title || 'Untitled',
       author: book.author || 'Unknown Author',
       image: book.cover_image || "https://via.placeholder.com/150x200"
@@ -147,7 +148,7 @@ const ReadList = () => {
               >
                 {/* Book Cover Container */}
                 <div className="bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors duration-200 mb-3 overflow-hidden relative">
-                  <Link to={`/book/${book.title}/${book.id}`}>
+                  <Link to={`/book/${encodeURIComponent(book.title)}/${book.googleBookId}`}>
                   <img 
                     src={book.image} 
                     alt={book.title}

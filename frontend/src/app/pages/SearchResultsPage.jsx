@@ -53,7 +53,7 @@ const SearchResultsPage = () => {
     id: book.id,
     title: book.volumeInfo?.title || 'Untitled',
     author: book.volumeInfo?.authors || 'Unknown Author',
-    image: book.volumeInfo?.imageLinks?.large || book.volumeInfo?.imageLinks?.medium || book.volumeInfo?.imageLinks?.thumbnail || "https://via.placeholder.com/150x200"
+    image: book.volumeInfo?.imageLinks?.large || book.volumeInfo?.imageLinks?.medium || book.volumeInfo?.imageLinks?.small || book.volumeInfo?.imageLinks?.thumbnail || "https://via.placeholder.com/150x200"
   }));
 
     console.log("searched: ", mappedBooks);
@@ -74,7 +74,7 @@ const SearchResultsPage = () => {
                     >
                     {/* Book Cover Container */}
                     <div className="bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors duration-200 mb-3 overflow-hidden">
-                        <Link to={`/book/${book.title}/${book.id}`}>
+                        <Link to={`/book/${encodeURIComponent(book.title)}/${book.id}`}>
                         <img 
                             src={book.image} 
                             alt={book.title}

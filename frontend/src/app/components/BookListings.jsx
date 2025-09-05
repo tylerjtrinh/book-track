@@ -150,7 +150,7 @@ const BookListings = () => {
                       className="flex-shrink-0 cursor-pointer"
                       style={{ width: '180px' }}
                     >
-                      <Link to={`/book/${book.title}/${book.id}`}>
+                      <Link to={`/book/${encodeURIComponent(book.title)}/${book.id}`}>
                       {/* Book Cover Container */}
                       <div className="bg-slate-600 rounded-lg hover:bg-slate-500 transition-colors duration-200 mb-3 overflow-hidden">
                         <img 
