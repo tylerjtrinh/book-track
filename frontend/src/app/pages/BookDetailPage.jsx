@@ -4,6 +4,7 @@ import { getGoogleBook } from '../../../utils/googleBooksApi';
 import Spinner from '../components/Spinner';
 
 const BookDetail = () => {
+  window.scrollTo(0, 0); //so the page loads in at the top
   const [book, setBook] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -77,7 +78,7 @@ const BookDetail = () => {
             {/* Book Image - on left */}
             <div className="flex-shrink-0">
               <img 
-                src={imageLinks?.large || imageLinks?.medium || imageLinks?.thumbnail || "https://via.placeholder.com/300x400"}
+                src={imageLinks?.thumbnail || imageLinks?.large || imageLinks?.medium || "https://via.placeholder.com/300x400"}
                 alt={title}
                 className="w-full h-90 aspect-[2/3] object-cover rounded-lg shadow-lg"
               />
