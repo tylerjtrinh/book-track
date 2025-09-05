@@ -3,7 +3,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import { useState, useEffect, useRef } from 'react';
 import { useLogoutMutation } from "../slices/usersApiSlice";
 import { clearCredentials } from '../slices/authSlice';
-import { IoIosSearch, IoIosArrowDown } from "react-icons/io";
+import { IoIosArrowDown } from "react-icons/io";
+import SearchBar from './SearchBar';
 
 const Navbar = () => {
   const { userInfo } = useSelector((state) => state.auth);
@@ -14,6 +15,11 @@ const Navbar = () => {
 
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
+  
+  const handleSearch = (searchTerm) => {
+    // Navigate to search results page with query parameter
+    navigate(`/search?q=${encodeURIComponent(searchTerm)}`);
+  };
   
   const logoutHandler = async () => {
     try {
@@ -63,18 +69,10 @@ const Navbar = () => {
           </div>
 
           {/* Search Bar - Center */}
-          <div className="hidden sm:flex flex-1 max-w-md mx-8">
-            <div className="relative w-full">
-              <input
-                type="text"
-                placeholder="Search books"
-                className="w-full bg-slate-600 border border-slate-500 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-              />
-              <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-                <IoIosSearch className="h-5 w-5 text-slate-400" />
-              </div>
-            </div>
-          </div>
+          <SearchBar 
+            className="hidden sm:flex flex-1 max-w-md mx-8"
+            onSearch={handleSearch}
+          />
 
           {/* Navigation Links - Right */}
           <div className="flex items-center space-x-2">
@@ -126,18 +124,10 @@ const Navbar = () => {
         </div>
         
         {/* Search Bar - Below on small screens */}
-        <div className="sm:hidden pb-4">
-          <div className="relative">
-            <input
-              type="text"
-              placeholder="Search books"
-              className="w-full bg-slate-600 border border-slate-500 rounded-lg px-4 py-2 text-sm text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-slate-500 focus:border-transparent"
-            />
-            <div className="absolute inset-y-0 right-0 pr-3 flex items-center">
-              <IoIosSearch className="h-5 w-5 text-slate-400" />
-            </div>
-          </div>
-        </div>
+        <SearchBar 
+          className="sm:hidden pb-4"
+          onSearch={handleSearch}
+        />
       </div>
     </nav>
   );
