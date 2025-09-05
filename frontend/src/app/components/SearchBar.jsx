@@ -1,7 +1,7 @@
 import { IoIosSearch } from "react-icons/io";
 import { useState } from "react";
 
-const SearchBar = ({ className = "", placeholder = "Search books", onSearch }) => {
+const SearchBar = ({ className = "", placeholder = "Search books or author", onSearch }) => {
   const [searchTerm, setSearchTerm] = useState("");
 
   const handleSearch = () => {

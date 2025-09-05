@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom'
 import {searchGoogleBooks} from '../../../utils/googleBooksApi';
+import Spinner from '../components/Spinner';
 
 const SearchResultsPage = () => {
     const [searchResults, setSearchResults] = useState([]);
@@ -16,7 +17,8 @@ const SearchResultsPage = () => {
             try {
                 const searchQuery = searchTerm.trim();
                 console.log('Query being sent to API:', searchQuery);
-                const googleBooks = await searchGoogleBooks(searchQuery , 12);
+                const googleBooks = await searchGoogleBooks(searchQuery , 24);
+                
                 console.log('API Response:', googleBooks);
                 setSearchResults(googleBooks);
             } catch (error) {
@@ -33,7 +35,7 @@ const SearchResultsPage = () => {
   if (loading) {
     return (
       <div className="bg-slate-700 min-h-screen flex items-center justify-center">
-        <div className="text-white text-xl">Loading books...</div>
+        <Spinner />
       </div>
     );
   }
