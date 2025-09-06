@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom'
 import { getGoogleBook } from '../../../utils/googleBooksApi';
-import { useAddBookMutation } from '../slices/userBooksApiSlice';
+import { useAddBookMutation, useDeleteBookMutation, useGetBookQuery } from '../slices/userBooksApiSlice';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import Spinner from '../components/Spinner';
@@ -16,7 +16,17 @@ const BookDetail = () => {
 
   const { userInfo } = useSelector((state) => state.auth); //For the reading list features
 
-  const [addBook, {isLoading}] = useAddBookMutation();
+  const [addBook, {isLoading: isAddLoading}] = useAddBookMutation();
+  const [deleteBook, {isLoading: isDeleteLoading}] = useDeleteBookMutation();
+  
+  // Check if book is in user's reading list (only if user is logged in)
+  const { data: userBookData, isLoading: isCheckingBook, error: bookCheckError } = useGetBookQuery(googleBookId, {
+    skip: !userInfo // Skip API call if user is not logged in
+  });
+  
+  console.log('User Book Data:', userBookData);
+  console.log('Is Checking Book:', isCheckingBook);
+  console.log('Book Check Error:', bookCheckError);
 
   useEffect(() => {
     const fetchBook = async () => {
@@ -106,6 +116,18 @@ const BookDetail = () => {
     }
   }
 
+  const handleDeleteBook = async () => {
+    if(userInfo) {
+      try {
+        await deleteBook(googleBookId).unwrap();
+        toast.success('Book removed from reading list!');
+      } catch (error) {
+        console.error('Failed to delete book:', error);
+        toast.error('Failed to remove book')
+      }
+    }
+  };
+
   return (
     <div className="bg-slate-700 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -165,16 +187,40 @@ const BookDetail = () => {
                   <span className="text-white">{categories.join(', ')}</span>
                 </div>
               )}
+              
+              {/* Dynamic Add/Remove Button */}
               {userInfo ? (
-              <button
-                onClick={handleAddBook}
-                className="cursor-pointer bg-blue-700 hover:bg-blue-600 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
-              >
-                Add to reading list
-              </button>
+                isCheckingBook ? (
+                  // Loading state while checking if book exists
+                  <button
+                    disabled
+                    className="cursor-not-allowed bg-gray-600 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg opacity-50"
+                  >
+                    Checking...
+                  </button>
+                ) : userBookData?.isInUserList ? (
+                  // Book is in user's list - show remove button
+                  <button
+                    onClick={handleDeleteBook}
+                    disabled={isDeleteLoading}
+                    className="cursor-pointer bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    {isDeleteLoading ? 'Removing...' : 'Remove from reading list'}
+                  </button>
+                ) : (
+                  // Book is not in user's list - show add button
+                  <button
+                    onClick={handleAddBook}
+                    disabled={isAddLoading}
+                    className="cursor-pointer bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+                  >
+                    {isAddLoading ? 'Adding...' : 'Add to reading list'}
+                  </button>
+                )
               ) : (
+                // User not logged in
                 <Link to='/login'
-                  className="cursor-pointer bg-blue-700 hover:bg-blue-600 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+                  className="cursor-pointer bg-blue-600 hover:bg-blue-500 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
                 >
                   Sign in to add to list
                 </Link>

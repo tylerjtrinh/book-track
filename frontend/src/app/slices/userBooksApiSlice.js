@@ -10,12 +10,13 @@ export const userBooksApiSlice = apiSlice.injectEndpoints({
             }),
             providesTags: ['Books'] // For cache invalidation
         }),
+
         getBook: builder.query({
             query: (googleBookId) => ({
-                url: `${BOOK_URL}/${googleBookId}`,
+                url: `${BOOK_URL}/details/${googleBookId}`,
                 method: 'GET'
             }),
-            providesTags: (googleBookId) => [{ type: 'Books', id: googleBookId }]
+            providesTags: (result, error, googleBookId) => [{ type: 'Books', id: googleBookId }]
         }),
         addBook: builder.mutation({
             query: (data) => ({
@@ -23,7 +24,10 @@ export const userBooksApiSlice = apiSlice.injectEndpoints({
                 method: 'POST',
                 body: data
             }),
-            invalidatesTags: ['Books'] // Refetch books after adding
+            invalidatesTags: (result, error, data) => [
+                'Books', 
+                { type: 'Books', id: data.google_books_id }
+            ]
         }),
         updateBookStatus: builder.mutation({
             query: ({ googleBookId, status }) => ({
@@ -45,7 +49,10 @@ export const userBooksApiSlice = apiSlice.injectEndpoints({
                 url: `${BOOK_URL}/${googleBookId}`,
                 method: 'DELETE'
             }),
-            invalidatesTags: ['Books'] // Automatically refetch getBooks after deletion
+            invalidatesTags: (result, error, googleBookId) => [
+                'Books', 
+                { type: 'Books', id: googleBookId }
+            ]
         })
     })
 })
