@@ -3,7 +3,7 @@ import pool from '../config/db.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
-// Sync NYT Best Sellers to local database
+// Sync NYT Best Sellers to database
 const syncNYTBestSellers = async () => {
     try {
         console.log('Starting NYT Best Sellers sync...');
@@ -14,6 +14,7 @@ const syncNYTBestSellers = async () => {
         }
 
         // Fetch overview data from NYT API
+        // Current bestseller list
         const response = await fetch(
             `https://api.nytimes.com/svc/books/v3/lists/overview.json?api-key=${apiKey}`
         );
@@ -61,16 +62,15 @@ const syncNYTBestSellers = async () => {
             
             for (const book of list.books) {
                 try {
-                    // Look up Google Books ID using ISBN (try both ISBN-13 and ISBN-10)
+                    // Look up Google Books ID using ISBN first, then title+author fallback
                     let googleBooksId = null;
                     const isbn13 = book.primary_isbn13;
                     const isbn10 = book.primary_isbn10;
                     
-                    // Try ISBN-13 first, then ISBN-10 as fallback. 
-                    // //An array with both ISBN values if both exist. Other wise one field will be null
+                    // Strategy 1: Try ISBN-13 first, then ISBN-10 as fallback
                     const isbnsToTry = [isbn13, isbn10].filter(Boolean);
                     
-                    for (const isbn of isbnsToTry) { //loop through only ISBNs that exist
+                    for (const isbn of isbnsToTry) {
                         if (googleBooksId) break; // Stop if we already found a match
                         
                         try {
@@ -85,17 +85,15 @@ const syncNYTBestSellers = async () => {
                                 const googleData = await googleResponse.json();
                                 if (googleData.items && googleData.items.length > 0) {
                                     googleBooksId = googleData.items[0].id;
-                                    // Keep NYT image as primary, use Google Books as fallback only
                                     const volumeInfo = googleData.items[0].volumeInfo;
                                     if (!book.book_image && volumeInfo.imageLinks) {
-                                        // Only use Google Books image if NYT didn't provide one
                                         book.book_image = volumeInfo.imageLinks.large || 
                                                          volumeInfo.imageLinks.medium || 
                                                          volumeInfo.imageLinks.thumbnail;
                                     }
                                     successfulLookups++;
-                                    console.log(`Found Google Books ID: ${googleBooksId}`);
-                                    break; // Found a match, stop trying other ISBN
+                                    console.log(`Found Google Books ID via ISBN: ${googleBooksId}`);
+                                    break;
                                 } else {
                                     console.log(`No Google Books match found for ISBN ${isbn}`);
                                 }
@@ -105,6 +103,65 @@ const syncNYTBestSellers = async () => {
                             await new Promise(resolve => setTimeout(resolve, 100));
                         } catch (googleError) {
                             console.log(`Error looking up Google Books for "${book.title}" with ISBN ${isbn}:`, googleError.message);
+                        }
+                    }
+
+                    // Strategy 2: If ISBN search failed, try title + author search
+                    if (!googleBooksId && book.title && book.author) {
+                        try {
+                            googleBooksLookups++;
+                            // Clean up title and author for better search results
+                            const cleanTitle = book.title.replace(/[^\w\s]/g, '').trim();
+                            const cleanAuthor = book.author.replace(/[^\w\s]/g, '').trim();
+                            const searchQuery = `intitle:"${cleanTitle}"+inauthor:"${cleanAuthor}"`;
+                            
+                            console.log(`Fallback search for "${book.title}" by "${book.author}" [${googleBooksLookups}]`);
+                            
+                            const googleResponse = await fetch(
+                                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=2`
+                            );
+                            
+                            if (googleResponse.ok) {
+                                const googleData = await googleResponse.json();
+                                if (googleData.items && googleData.items.length > 0) {
+                                    // Find the best match by checking title similarity
+                                    for (const item of googleData.items) {
+                                        const volumeInfo = item.volumeInfo;
+                                        const googleTitle = volumeInfo.title?.toLowerCase() || '';
+                                        const googleAuthor = volumeInfo.authors?.[0]?.toLowerCase() || '';
+                                        const nytTitle = book.title.toLowerCase();
+                                        const nytAuthor = book.author.toLowerCase();
+                                        
+                                        // Check if titles are similar (contains main words)
+                                        const titleWords = nytTitle.split(' ').filter(word => word.length > 2);
+                                        const titleMatch = titleWords.some(word => googleTitle.includes(word));
+                                        const authorMatch = googleAuthor.includes(nytAuthor.split(' ')[0]) || nytAuthor.includes(googleAuthor.split(' ')[0]);
+                                        
+                                        if (titleMatch && authorMatch) {
+                                            googleBooksId = item.id;
+                                            if (!book.book_image && volumeInfo.imageLinks) {
+                                                book.book_image = volumeInfo.imageLinks.large || 
+                                                                 volumeInfo.imageLinks.medium || 
+                                                                 volumeInfo.imageLinks.thumbnail;
+                                            }
+                                            successfulLookups++;
+                                            console.log(`Found Google Books ID via title+author: ${googleBooksId}`);
+                                            break;
+                                        }
+                                    }
+                                    
+                                    if (!googleBooksId) {
+                                        console.log(`No good match found for "${book.title}" by "${book.author}"`);
+                                    }
+                                } else {
+                                    console.log(`No Google Books results for "${book.title}" by "${book.author}"`);
+                                }
+                            }
+                            
+                            // Add delay between API calls
+                            await new Promise(resolve => setTimeout(resolve, 150));
+                        } catch (googleError) {
+                            console.log(`Error in title+author search for "${book.title}":`, googleError.message);
                         }
                     }
 
@@ -133,20 +190,20 @@ const syncNYTBestSellers = async () => {
         }
 
         
-        // Atomic swap: Replace live data with staging data (zero downtime)
-        console.log('Performing atomic swap to live table...');
+        // swap: Replace live data with staging data (zero downtime)
+        console.log('Performing swap to live table...');
         await pool.query('BEGIN');
         try {
-            // Step 1: Rename current live table to backup
+            // Rename current live table to backup
             await pool.query('ALTER TABLE explore_books RENAME TO explore_books_old');
             
-            // Step 2: Rename staging table to become the new live table
+            // Rename staging table to become the new live table
             await pool.query('ALTER TABLE explore_books_staging RENAME TO explore_books');
             
             await pool.query('COMMIT');
-            console.log('Atomic swap completed successfully!');
+            console.log('Swap completed successfully!');
             
-            // Step 3: Clean up old table outside of transaction (with CASCADE to handle dependencies)
+            //Clean up old table outside of transaction (with CASCADE to handle dependencies)
             try {
                 await pool.query('DROP TABLE IF EXISTS explore_books_old CASCADE');
                 console.log('Old table cleanup completed');
@@ -156,7 +213,7 @@ const syncNYTBestSellers = async () => {
             }
         } catch (swapError) {
             await pool.query('ROLLBACK');
-            throw new Error(`Atomic swap failed: ${swapError.message}`);
+            throw new Error(`Swap failed: ${swapError.message}`);
         }
         
         console.log(`Sync completed! Inserted ${totalBooksInserted} books from ${data.results.lists.length} lists`);
