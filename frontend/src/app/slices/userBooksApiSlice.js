@@ -42,7 +42,10 @@ export const userBooksApiSlice = apiSlice.injectEndpoints({
                 url: `${BOOK_URL}/favorite/${googleBookId}`,
                 method: 'PUT'
             }),
-            invalidatesTags: ['Books'] // Refetch books after favorite toggle
+            invalidatesTags: (result, error, googleBookId) => [
+                'Books', 
+                { type: 'Books', id: googleBookId }
+            ]
         }),
         deleteBook: builder.mutation({
             query: (googleBookId) => ({

@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom'
 import { getGoogleBook } from '../../../utils/googleBooksApi';
-import { useAddBookMutation, useDeleteBookMutation, useGetBookQuery } from '../slices/userBooksApiSlice';
+import { useAddBookMutation, useToggleBookFavoriteMutation, useDeleteBookMutation, useGetBookQuery } from '../slices/userBooksApiSlice';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import Spinner from '../components/Spinner';
+import { FaRegStar, FaStar } from "react-icons/fa";
 
 const BookDetail = () => {
   window.scrollTo(0, 0); //so the page loads in at the top
@@ -17,6 +18,7 @@ const BookDetail = () => {
   const { userInfo } = useSelector((state) => state.auth); //For the reading list features
 
   const [addBook, {isLoading: isAddLoading}] = useAddBookMutation();
+  const [favoriteBook, {isLoading: isFavoriteLoading}] = useToggleBookFavoriteMutation();
   const [deleteBook, {isLoading: isDeleteLoading}] = useDeleteBookMutation();
   
   // Check if book is in user's reading list (only if user is logged in)
@@ -25,6 +27,7 @@ const BookDetail = () => {
   });
   
   console.log('User Book Data:', userBookData);
+  console.log('Favorite value:', userBookData?.favorite);
   console.log('Is Checking Book:', isCheckingBook);
   console.log('Book Check Error:', bookCheckError);
 
@@ -128,6 +131,26 @@ const BookDetail = () => {
     }
   };
 
+  const handleToggleFavorite = async () => {
+    if(userInfo) {
+      try {
+        console.log('Before toggle - userBookData:', userBookData);
+        console.log('Before toggle - favorite status:', userBookData?.favorite);
+        
+        const response = await favoriteBook(googleBookId).unwrap();
+        console.log('Server response:', response);
+        console.log('Response favorite status:', response.book.favorite);
+        
+        // Use the response data to show correct message since it has the updated favorite status
+        toast.success(response.book.favorite ? 'Added to favorites' : 'Removed from favorites');
+        
+      } catch (error) {
+        console.error('Failed to toggle favorite:', error);
+        toast.error('Failed to update favorite status');
+      }
+    }
+  };
+
   return (
     <div className="bg-slate-700 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -199,14 +222,32 @@ const BookDetail = () => {
                     Checking...
                   </button>
                 ) : userBookData?.isInUserList ? (
-                  // Book is in user's list - show remove button
-                  <button
-                    onClick={handleDeleteBook}
-                    disabled={isDeleteLoading}
-                    className="cursor-pointer bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
-                  >
-                    {isDeleteLoading ? 'Removing...' : 'Remove from reading list'}
-                  </button>
+                  // Book is in user's list - show remove button and favorite button
+                  <div className="flex items-center gap-3">
+                    <button
+                      onClick={handleDeleteBook}
+                      disabled={isDeleteLoading}
+                      className="cursor-pointer bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-medium py-3 px-8 rounded-lg text-lg transition-colors duration-200 shadow-lg hover:shadow-xl"
+                    >
+                      {isDeleteLoading ? 'Removing...' : 'Remove from reading list'}
+                    </button>
+                    
+                    {/* Favorite Button - Square with Star */}
+                    <button
+                      onClick={handleToggleFavorite}
+                      disabled={isFavoriteLoading}
+                      className="cursor-pointer bg-yellow-600 hover:bg-yellow-500 disabled:opacity-50 text-white p-3 rounded-lg text-xl transition-colors duration-200 shadow-lg hover:shadow-xl flex items-center justify-center w-12 h-12"
+                      title={userBookData?.favorite ? 'Remove from favorites' : 'Add to favorites'}
+                    >
+                      {isFavoriteLoading ? (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+                      ) : userBookData?.favorite ? (
+                        <FaStar />
+                      ) : (
+                        <FaRegStar />
+                      )}
+                    </button>
+                  </div>
                 ) : (
                   // Book is not in user's list - show add button
                   <button
