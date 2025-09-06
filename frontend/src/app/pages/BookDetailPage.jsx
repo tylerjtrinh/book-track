@@ -108,7 +108,7 @@ const BookDetail = () => {
             title: title || 'Untitled', 
             author: authors?.join(', ') || 'Unknown Author',
             description: description || '', 
-            cover_image: imageLinks?.large || imageLinks?.medium || imageLinks?.small || imageLinks?.thumbnail || "https://via.placeholder.com/300x400",
+            cover_image: imageLinks?.thumbnail || imageLinks?.smallThumbnail || imageLinks?.medium || "https://via.placeholder.com/300x400",
             genres: categories || []
         };
         
@@ -178,7 +178,7 @@ const BookDetail = () => {
             {/* Book Image - on left */}
             <div className="flex-shrink-0">
               <img 
-                src={ imageLinks?.large || imageLinks?.medium || book.volumeInfo?.imageLinks?.small || imageLinks?.thumbnail || "https://via.placeholder.com/300x400"}
+                src={imageLinks?.thumbnail || imageLinks?.smallThumbnail || imageLinks?.medium || "https://via.placeholder.com/300x400"}
                 alt={title}
                 className="w-full max-w-50 lg:max-w-60 min-h-70 lg:min-h-90 aspect-[2/3] object-cover rounded-lg shadow-lg mx-auto lg:mx-0"
               />
