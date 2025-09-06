@@ -8,9 +8,10 @@ import generateToken from '../utils/generateToken.js';
 const authUser = async (req, res, next) => {
     try {
         const { username, password } = req.body;
+        const trimmedUsername = username?.trim();
         const result = await pool.query(
             'SELECT * FROM "user" WHERE username = $1',
-            [username]
+            [trimmedUsername]
         );
 
         //Check if user exists
@@ -57,11 +58,13 @@ const registerUser = async (req, res, next) => {
         if (!username || username.trim() === '') {
             return res.status(400).json({ error: 'Username is required' });
         }
+        const trimmedUsername = username.trim();
 
         //Email Validation
         if (!email || email.trim() === '') {
             return res.status(400).json({ error: 'Email is required' });
         }
+        const trimmedEmail = email.trim();
 
         //Password Validation
         if (!password || password.trim() === '') {
@@ -72,7 +75,7 @@ const registerUser = async (req, res, next) => {
         
         const result = await pool.query(
             'INSERT INTO "user" (username, email, password) VALUES ($1, $2, $3) RETURNING user_id, username, email',
-            [username, email, hashedPassword] 
+            [trimmedUsername, trimmedEmail, hashedPassword] 
         );
 
         const user = result.rows[0]; // Get the user data
@@ -135,12 +138,12 @@ const updateUserProfile = async (req, res, next) => {
 
         if(username && username.trim() !== '') {
             updates.push(`username = $${index++}`); //Add one to index after username is pushed to updates. 
-            values.push(username);
+            values.push(username.trim());
         }
 
         if(email && email.trim() !== '') {
             updates.push(`email = $${index++}`); //Add one to index after email is pushed to updates
-            values.push(email);
+            values.push(email.trim());
         }
 
         if (updates.length === 0) {
@@ -181,14 +184,15 @@ const updateUserPassword = async (req, res, next) => {
         //Check if user entered previous password correctly
 
         //Check if new password was entered
-        if(!req.body.password || req.body.password.trim() === '') {
+        const { password } = req.body;
+        if(!password || password.trim() === '') {
             const error = new Error('Password not entered');
             error.statusCode = 400;
             return next(error);
         }
 
         //update password
-        const hashedPassword = await bcrypt.hash(req.body.password, 10);
+        const hashedPassword = await bcrypt.hash(password, 10);
          //Make SQL UPDATE HERE
         await pool.query(
             'UPDATE "user" SET password = $1 WHERE user_id = $2',
