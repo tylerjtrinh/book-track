@@ -3,8 +3,8 @@ name: NYT Bestsellers Sync
 on:
   schedule:
     # NYT updates weekly on Wednesdays at 7:00 PM Eastern
-    # Runs every Wednesday at 8:30 PM Eastern (1.5 hours after NYT update)
-    - cron: '30 0 * * 4'   
+    # Runs every Wednesday at 8:30 PM Eastern (1.5 hours after NYT update just to be safe)
+    - cron: '30 0 * * 4'  
   
   # Allow manual triggering
   workflow_dispatch:
