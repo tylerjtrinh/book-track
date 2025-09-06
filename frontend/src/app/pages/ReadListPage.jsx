@@ -33,9 +33,9 @@ const ReadList = () => {
       : `${baseClass} bg-slate-600 text-slate-300 hover:bg-slate-500 hover:text-white cursor-pointer`;
   };
 
-  const handleDeleteBook = async (bookId) => {
+  const handleDeleteBook = async (googleBookId) => {
   try {
-    await deleteBook(bookId).unwrap();
+    await deleteBook(googleBookId).unwrap();
     toast.success('Book deleted');
   } catch (error) {
     console.error('Failed to delete book:', error);
@@ -162,7 +162,7 @@ const ReadList = () => {
                         onClick={(e) => {
                           e.stopPropagation();
                           // Handle remove from bookshelf logic here
-                          handleDeleteBook(book.id);
+                          handleDeleteBook(book.googleBookId);
                         }}
                         className="bg-transparent hover:bg-slate-400 text-slate-300 hover:text-white p-1 rounded transition-colors duration-200">
                         <FaBookmark className="cursor-pointer h-4 w-4" />

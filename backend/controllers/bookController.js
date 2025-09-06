@@ -72,6 +72,8 @@ const getBook = async (req, res, next) => {
 const addBook = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT
+        console.log('Received request body:', req.body); // Debug log
+        
         const { 
             google_books_id,                           
             title, 
@@ -80,6 +82,8 @@ const addBook = async (req, res, next) => {
             cover_image,
             genres 
         } = req.body; // Book data from frontend
+
+        console.log('Extracted fields:', { google_books_id, title, author, description, cover_image, genres }); // Debug log
 
         // Check if book already exists in user's list
         const existingBook = await checkBookExists(google_books_id, userId);
@@ -114,18 +118,18 @@ const addBook = async (req, res, next) => {
 };
 
 // @desc     Edit book status. Ex: want_to_read, currently_reading, completed
-// @route    PUT /api/books/status/:bookId/
+// @route    PUT /api/books/status/:googleBookId/
 // @access   Private
 const updateBookStatus = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT 
-        const { bookId } = req.params; 
+        const { googleBookId } = req.params; 
         const { status } = req.body; // new status from request body
 
         // Update the book status and return the updated book
         const result = await pool.query(
-            'UPDATE book SET status = $1 WHERE book_id = $2 AND user_id = $3 RETURNING *',
-            [status, bookId, userId]
+            'UPDATE book SET status = $1 WHERE google_books_id = $2 AND user_id = $3 RETURNING *',
+            [status, googleBookId, userId]
         );
 
         if (result.rows.length === 0) {
@@ -146,18 +150,18 @@ const updateBookStatus = async (req, res, next) => {
 };
 
 // @desc     Add or remove books from favorites
-// @route    PUT /api/books/favorite/:bookId
+// @route    PUT /api/books/favorite/:googleBookId
 // @access   Private
 const toggleBookFavorite = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT 
-        const { bookId } = req.params; // book ID from URL 
+        const { googleBookId } = req.params; // book ID from URL 
         const { favorite } = req.body; // TRUE or FALSE favorite value from request body
 
         // Update whether the book is favorited and return the updated book
         const result = await pool.query(
-            'UPDATE book SET favorite = $1 WHERE book_id = $2 AND user_id = $3 RETURNING *',
-            [favorite, bookId, userId]
+            'UPDATE book SET favorite = $1 WHERE google_books_id = $2 AND user_id = $3 RETURNING *',
+            [favorite, googleBookId, userId]
         );
 
         if (result.rows.length === 0) {
@@ -178,12 +182,12 @@ const toggleBookFavorite = async (req, res, next) => {
 };
 
 // @desc     Update book rating
-// @route    PUT /api/books/rating/:bookId
+// @route    PUT /api/books/rating/:googleBookId
 // @access   Private
 const updateBookRating = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT 
-        const { bookId } = req.params; // book ID from URL
+        const { googleBookId } = req.params; // book ID from URL
         const { user_rating } = req.body; // rating from request body
 
         // Validate rating is between 1-5
@@ -193,8 +197,8 @@ const updateBookRating = async (req, res, next) => {
 
         // Update the book rating and return the updated book
         const result = await pool.query(
-            'UPDATE book SET user_rating = $1 WHERE book_id = $2 AND user_id = $3 RETURNING *',
-            [user_rating, bookId, userId]
+            'UPDATE book SET user_rating = $1 WHERE google_books_id = $2 AND user_id = $3 RETURNING *',
+            [user_rating, googleBookId, userId]
         );
 
         if (result.rows.length === 0) {
@@ -215,17 +219,17 @@ const updateBookRating = async (req, res, next) => {
 };
 
 // @desc     Delete book from user's reading list
-// @route    DELETE /api/books/:bookId
+// @route    DELETE /api/books/:googleBookId
 // @access   Private
 const deleteBook = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT 
-        const { bookId } = req.params;
+        const { googleBookId } = req.params;
 
         // DELETE book from users reading list
         const result = await pool.query(
-            'DELETE FROM book WHERE book_id = $1 AND user_id = $2 RETURNING *',
-            [bookId, userId]
+            'DELETE FROM book WHERE google_books_id = $1 AND user_id = $2 RETURNING *',
+            [googleBookId, userId]
         );
 
         if (result.rows.length === 0) {

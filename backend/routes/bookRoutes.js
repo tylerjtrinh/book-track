@@ -20,12 +20,12 @@ router.get('/details/:googleBookId', protect, getBook);
 router.post('/', protect, addBook);
 
 //PUT routes
-router.put('/status/:bookId', protect, updateBookStatus);
-router.put('/favorite/:bookId', protect, toggleBookFavorite);
-router.put('/rating/:bookId', protect, updateBookRating);
+router.put('/status/:googleBookId', protect, updateBookStatus);
+router.put('/favorite/:googleBookId', protect, toggleBookFavorite);
+router.put('/rating/:googleBookId', protect, updateBookRating);
 
 //DELETE routes
-router.delete('/:bookId', protect, deleteBook);
+router.delete('/:googleBookId', protect, deleteBook);
 
 
 

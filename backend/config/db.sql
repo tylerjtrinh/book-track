@@ -17,7 +17,7 @@ CREATE TABLE book (
     title VARCHAR(255) NOT NULL,
     author VARCHAR(255) NOT NULL,
     description TEXT,
-    cover_image VARCHAR(255),
+    cover_image TEXT,
     genres JSONB,
     favorite BOOLEAN DEFAULT FALSE,
     status VARCHAR(20) CHECK (status IN ('to-read', 'currently-reading', 'completed')) DEFAULT 'to-read',

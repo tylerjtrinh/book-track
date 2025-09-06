@@ -8,16 +8,53 @@ export const userBooksApiSlice = apiSlice.injectEndpoints({
                 url: `${BOOK_URL}`,
                 method: 'GET'
             }),
-            providesTags: ['Book'] // For cache invalidation
+            providesTags: ['Books'] // For cache invalidation
+        }),
+        getBook: builder.query({
+            query: (googleBookId) => ({
+                url: `${BOOK_URL}/${googleBookId}`,
+                method: 'GET'
+            }),
+            providesTags: (googleBookId) => [{ type: 'Books', id: googleBookId }]
+        }),
+        addBook: builder.mutation({
+            query: (data) => ({
+                url: `${BOOK_URL}`,
+                method: 'POST',
+                body: data
+            }),
+            invalidatesTags: ['Books'] // Refetch books after adding
+        }),
+        updateBookStatus: builder.mutation({
+            query: ({ googleBookId, status }) => ({
+                url: `${BOOK_URL}/status/${googleBookId}`,
+                method: 'PUT',
+                body: { status }
+            }),
+            invalidatesTags: ['Books'] // Refetch books after status update
+        }),
+        toggleBookFavorite: builder.mutation({
+            query: (googleBookId) => ({
+                url: `${BOOK_URL}/favorite/${googleBookId}`,
+                method: 'PUT'
+            }),
+            invalidatesTags: ['Books'] // Refetch books after favorite toggle
         }),
         deleteBook: builder.mutation({
-            query: (bookId) => ({
-                url: `${BOOK_URL}/${bookId}`,
+            query: (googleBookId) => ({
+                url: `${BOOK_URL}/${googleBookId}`,
                 method: 'DELETE'
             }),
-            invalidatesTags: ['Book'] // Automatically refetch getBooks after deletion
+            invalidatesTags: ['Books'] // Automatically refetch getBooks after deletion
         })
     })
 })
 
-export const { useGetBooksQuery, useDeleteBookMutation } = userBooksApiSlice;
+export const { 
+    useGetBooksQuery, 
+    useGetBookQuery,
+    useAddBookMutation,
+    useUpdateBookStatusMutation,
+    useToggleBookFavoriteMutation,
+    useDeleteBookMutation 
+} = userBooksApiSlice;
