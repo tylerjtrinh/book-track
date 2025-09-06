@@ -26,7 +26,7 @@ const getAllBooks = async (req, res, next) => {
         const result = await pool.query(
             `SELECT * FROM explore_books 
              WHERE google_books_id IS NOT NULL
-             ORDER BY list_name, rank`
+             ORDER BY list_name, rank ASC`
         );
         
         // Group books by list_name
@@ -83,11 +83,9 @@ const getPopularBooks = async (req, res, next) => {
         const result = await pool.query(
             `SELECT DISTINCT ON (title, author) * FROM explore_books 
              WHERE rank <= 7 AND google_books_id IS NOT NULL
-             AND list_name NOT ILIKE '%children%' 
              AND list_name NOT ILIKE '%picture%'
-             AND list_name NOT ILIKE '%middle grade%'
-             ORDER BY title, author, rank, list_name 
-             LIMIT 70`
+             ORDER BY title, author, rank ASC, list_name 
+             LIMIT 40`
         );
         
         res.json({
