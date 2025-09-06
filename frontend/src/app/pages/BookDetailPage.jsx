@@ -1,7 +1,12 @@
 import { useState, useEffect } from 'react';
 import { Link, useParams } from 'react-router-dom'
 import { getGoogleBook } from '../../../utils/googleBooksApi';
-import { useAddBookMutation, useToggleBookFavoriteMutation, useDeleteBookMutation, useGetBookQuery } from '../slices/userBooksApiSlice';
+import { 
+  useAddBookMutation, 
+  useToggleBookFavoriteMutation, 
+  useDeleteBookMutation, 
+  useGetBookQuery,
+  useUpdateBookStatusMutation } from '../slices/userBooksApiSlice';
 import { useSelector } from 'react-redux';
 import { toast } from 'react-toastify';
 import Spinner from '../components/Spinner';
@@ -20,6 +25,7 @@ const BookDetail = () => {
   const [addBook, {isLoading: isAddLoading}] = useAddBookMutation();
   const [favoriteBook, {isLoading: isFavoriteLoading}] = useToggleBookFavoriteMutation();
   const [deleteBook, {isLoading: isDeleteLoading}] = useDeleteBookMutation();
+  const [updateStatus, {isLoading: isStatusLoading}] = useUpdateBookStatusMutation();
   
   // Check if book is in user's reading list (only if user is logged in)
   const { data: userBookData, isLoading: isCheckingBook, error: bookCheckError } = useGetBookQuery(googleBookId, {
@@ -151,6 +157,18 @@ const BookDetail = () => {
     }
   };
 
+  const handleStatusChange = async (event) => {
+    if(userInfo) {
+      const newStatus = event.target.value;
+      try {
+        const response = await updateStatus({ googleBookId, status: newStatus }).unwrap();
+      } catch (error) {
+        console.error('Failed to update status:', error);
+        toast.error('Failed to update book status');
+      }
+    }
+  };
+
   return (
     <div className="bg-slate-700 min-h-screen">
       <div className="max-w-6xl mx-auto px-4 py-8">
@@ -211,7 +229,27 @@ const BookDetail = () => {
                 </div>
               )}
               
-              {/* Dynamic Add/Remove Button */}
+              {/* Status Dropdown - Only show if book is in user's list */}
+              {userInfo && userBookData?.isInUserList && (
+                <div className="mb-6">
+                  <label htmlFor="status-select" className="block text-slate-300 text-sm mb-2">
+                    Reading Status:
+                  </label>
+                  <select
+                    id="status-select"
+                    value={userBookData?.status || 'to-read'}
+                    onChange={handleStatusChange}
+                    disabled={isStatusLoading}
+                    className="bg-slate-600 border border-slate-500 text-white rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <option value="to-read">To Read</option>
+                    <option value="currently-reading">Currently Reading</option>
+                    <option value="completed">Completed</option>
+                  </select>
+                </div>
+              )}
+              
+              {/* Add/Remove Button */}
               {userInfo ? (
                 isCheckingBook ? (
                   // Loading state while checking if book exists
