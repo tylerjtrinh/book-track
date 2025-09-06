@@ -18,7 +18,7 @@ router.route('/profile')
 .get(protect, getUserProfile)
 .put(protect, updateUserProfile);
 
-router.put('/password', protect, updateUserPassword)
+router.put('/password', protect, updateUserPassword);
 
 
 

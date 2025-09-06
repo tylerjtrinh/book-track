@@ -1,3 +1,4 @@
+import path from 'path';
 import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config({ path: '../.env' });
@@ -9,6 +10,9 @@ import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import userRoutes from './routes/userRoutes.js';
 import bookRoutes from './routes/bookRoutes.js';
 import exploreRoutes from './routes/exploreRoutes.js';
+import { fileURLToPath } from 'url';  // ← Missing import
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const port = process.env.PORT || 5000;
 
@@ -26,8 +30,16 @@ app.use('/api/users', userRoutes);          //For user login
 app.use('/api/books', bookRoutes);          //For adding, updating or removing books from reading list
 app.use('/api/explore', exploreRoutes);     //For the explore page
 
-//FOR NOW probably change later
-app.get('/', (req, res) => res.send('Server is ready'));
+if(process.env.NODE_ENV === 'production') {
+    app.use(express.static(path.join(__dirname, '../frontend/dist')));
+    ///^(?!\/api).*/
+    // Serve the React app for all non-API routes
+    app.get(/^(?!\/api).*/, (req, res) => {
+        res.sendFile(path.resolve(__dirname, '../frontend', 'dist', 'index.html'));
+    });
+} else {
+    app.get('/', (req, res) => res.send('Server is ready'));
+}
 
 
 //Error Handler
