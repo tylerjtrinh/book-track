@@ -156,23 +156,32 @@ const toggleBookFavorite = async (req, res, next) => {
     try {
         const userId = req.user.user_id; // From JWT 
         const { googleBookId } = req.params; // book ID from URL 
-        const { favorite } = req.body; // TRUE or FALSE favorite value from request body
 
-        // Update whether the book is favorited and return the updated book
-        const result = await pool.query(
-            'UPDATE book SET favorite = $1 WHERE google_books_id = $2 AND user_id = $3 RETURNING *',
-            [favorite, googleBookId, userId]
+        // First get the current favorite status
+        const currentResult = await pool.query(
+            'SELECT favorite FROM book WHERE google_books_id = $1 AND user_id = $2',
+            [googleBookId, userId]
         );
 
-        if (result.rows.length === 0) {
+        if (currentResult.rows.length === 0) {
             return res.status(404).json({ message: 'Book not found in your reading list' });
         }
+
+        // Toggle the favorite status
+        const currentFavorite = currentResult.rows[0].favorite;
+        const newFavorite = !currentFavorite;
+
+        // Update the favorite status and return the updated book
+        const result = await pool.query(
+            'UPDATE book SET favorite = $1 WHERE google_books_id = $2 AND user_id = $3 RETURNING *',
+            [newFavorite, googleBookId, userId]
+        );
 
         const updatedBook = result.rows[0];
         const bookData = formatBookResponse(updatedBook);
 
         res.json({
-            message: 'Book favorite updated successfully',
+            message: `Book ${newFavorite ? 'added to' : 'removed from'} favorites`,
             book: bookData
         });
 
