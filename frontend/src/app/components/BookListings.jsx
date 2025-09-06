@@ -137,7 +137,7 @@ const BookListings = () => {
                 {/* Books Container */}
                 <div 
                   id={`books-container-${categoryIndex}`}
-                  className="flex space-x-4 overflow-x-auto scrollbar-hide"
+                  className="flex space-x-3 md:space-x-4 overflow-x-auto scrollbar-hide"
                   style={{
                     scrollbarWidth: 'none', // Firefox
                     msOverflowStyle: 'none', // IE and Edge
@@ -147,8 +147,7 @@ const BookListings = () => {
                   {category.books.map((book) => (
                     <div 
                       key={book.id} 
-                      className="flex-shrink-0 cursor-pointer"
-                      style={{ width: '180px' }}
+                      className="flex-shrink-0 cursor-pointer w-34 sm:w-38 md:w-40 lg:w-44 xl:w-47"
                     >
                       <Link to={`/book/${encodeURIComponent(book.title)}/${book.id}`}>
                       {/* Book Cover Container */}
