@@ -1,0 +1,25 @@
+name: NYT Bestsellers Sync
+
+on:
+  schedule:
+    # NYT updates weekly on Wednesdays at 7:00 PM Eastern
+    # Runs every Wednesday at 8:30 PM Eastern (1.5 hours after NYT update)
+    - cron: '30 0 * * 4'   
+  
+  # Allow manual triggering
+  workflow_dispatch:
+
+jobs:
+  sync-nyt:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Sync NYT Bestsellers
+      run: |
+        curl -X POST \
+          -H "Content-Type: application/json" \
+          -d '{"adminKey": "${{ secrets.ADMIN_SYNC_KEY }}"}' \
+          https://book-track-production.up.railway.app/api/admin/sync-nyt
+    
+    - name: Check sync result
+      run: echo "NYT sync completed at $(date)"
