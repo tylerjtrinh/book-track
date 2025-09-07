@@ -174,7 +174,7 @@ const syncNYTBestSellers = async () => {
                                             // Prefer books with publication dates (likely real books)
                                             if (volumeInfo.publishedDate) score += 0.1;
                                             
-                                            if (score > bestScore && score > 0.4) { // Minimum threshold
+                                            if (score > bestScore && score >= 1) { // Minimum threshold 
                                                 bestScore = score;
                                                 bestMatch = item;
                                             }
