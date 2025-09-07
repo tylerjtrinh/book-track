@@ -19,7 +19,7 @@ jobs:
         curl -X POST \
           -H "Content-Type: application/json" \
           -d '{"adminKey": "${{ secrets.ADMIN_SYNC_KEY }}"}' \
-          https://book-track-production.up.railway.app/api/admin/sync-nyt
+          https://www.book-tracks.com/api/admin/sync-nyt
     
     - name: Check sync result
       run: echo "NYT sync completed at $(date)"
