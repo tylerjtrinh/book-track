@@ -113,49 +113,94 @@ const syncNYTBestSellers = async () => {
                             // Clean up title and author for better search results
                             const cleanTitle = book.title.replace(/[^\w\s]/g, '').trim();
                             const cleanAuthor = book.author.replace(/[^\w\s]/g, '').trim();
-                            const searchQuery = `intitle:"${cleanTitle}"+inauthor:"${cleanAuthor}"`;
                             
-                            console.log(`Fallback search for "${book.title}" by "${book.author}" [${googleBooksLookups}]`);
+                            // Try multiple search strategies in order of preference
+                            const searchStrategies = [
+                                `intitle:"${cleanTitle}"+inauthor:"${cleanAuthor}"`,
+                                `"${cleanTitle}" "${cleanAuthor}"`,
+                                `${cleanTitle} ${cleanAuthor}`,
+                                cleanTitle // Just title as last resort
+                            ];
                             
-                            const googleResponse = await fetch(
-                                `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=2`
-                            );
-                            
-                            if (googleResponse.ok) {
-                                const googleData = await googleResponse.json();
-                                if (googleData.items && googleData.items.length > 0) {
-                                    // Find the best match by checking title similarity
-                                    for (const item of googleData.items) {
-                                        const volumeInfo = item.volumeInfo;
-                                        const googleTitle = volumeInfo.title?.toLowerCase() || '';
-                                        const googleAuthor = volumeInfo.authors?.[0]?.toLowerCase() || '';
-                                        const nytTitle = book.title.toLowerCase();
-                                        const nytAuthor = book.author.toLowerCase();
+                            for (const searchQuery of searchStrategies) {
+                                if (googleBooksId) break; // Stop if we found a match
+                                
+                                console.log(`Fallback search for "${book.title}" by "${book.author}" [${googleBooksLookups}] - Strategy: ${searchQuery}`);
+                                
+                                const googleResponse = await fetch(
+                                    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=5`
+                                );
+                                
+                                if (googleResponse.ok) {
+                                    const googleData = await googleResponse.json();
+                                    if (googleData.items && googleData.items.length > 0) {
+                                        // Find the best match with scoring
+                                        let bestMatch = null;
+                                        let bestScore = 0;
                                         
-                                        // Check if titles are similar (contains main words)
-                                        const titleWords = nytTitle.split(' ').filter(word => word.length > 2);
-                                        const titleMatch = titleWords.some(word => googleTitle.includes(word));
-                                        const authorMatch = googleAuthor.includes(nytAuthor.split(' ')[0]) || nytAuthor.includes(googleAuthor.split(' ')[0]);
+                                        for (const item of googleData.items) {
+                                            const volumeInfo = item.volumeInfo;
+                                            const googleTitle = volumeInfo.title?.toLowerCase() || '';
+                                            const googleAuthor = volumeInfo.authors?.[0]?.toLowerCase() || '';
+                                            const nytTitle = book.title.toLowerCase();
+                                            const nytAuthor = book.author.toLowerCase();
+                                            
+                                            let score = 0;
+                                            
+                                            // Title scoring 
+                                            const titleWords = nytTitle.split(' ').filter(word => word.length > 2);
+                                            const matchingWords = titleWords.filter(word => googleTitle.includes(word));
+                                            const titleScore = titleWords.length > 0 ? matchingWords.length / titleWords.length : 0;
+                                            score += titleScore * 0.7; // 70% weight for title
+                                            
+                                            // Author scoring
+                                            const nytAuthorParts = nytAuthor.split(' ');
+                                            const googleAuthorParts = googleAuthor.split(' ');
+                                            let authorScore = 0;
+                                            
+                                            for (const nytPart of nytAuthorParts) {
+                                                for (const googlePart of googleAuthorParts) {
+                                                    if (nytPart.length > 2 && googlePart.includes(nytPart)) {
+                                                        authorScore += 1;
+                                                    }
+                                                }
+                                            }
+                                            authorScore = Math.min(authorScore / nytAuthorParts.length, 1);
+                                            score += authorScore * 0.3; // 30% weight for author
+                                            
+                                            // Prefer exact title matches
+                                            if (googleTitle === nytTitle) score += 0.5;
+                                            
+                                            // Prefer books with publication dates (likely real books)
+                                            if (volumeInfo.publishedDate) score += 0.1;
+                                            
+                                            if (score > bestScore && score > 0.4) { // Minimum threshold
+                                                bestScore = score;
+                                                bestMatch = item;
+                                            }
+                                        }
                                         
-                                        if (titleMatch && authorMatch) {
-                                            googleBooksId = item.id;
+                                        if (bestMatch) {
+                                            googleBooksId = bestMatch.id;
+                                            const volumeInfo = bestMatch.volumeInfo;
                                             if (!book.book_image && volumeInfo.imageLinks) {
                                                 book.book_image = volumeInfo.imageLinks.large || 
                                                                  volumeInfo.imageLinks.medium || 
                                                                  volumeInfo.imageLinks.thumbnail;
                                             }
                                             successfulLookups++;
-                                            console.log(`Found Google Books ID via title+author: ${googleBooksId}`);
+                                            console.log(`Found Google Books ID via title+author: ${googleBooksId} (score: ${bestScore.toFixed(2)})`);
                                             break;
                                         }
                                     }
-                                    
-                                    if (!googleBooksId) {
-                                        console.log(`No good match found for "${book.title}" by "${book.author}"`);
-                                    }
-                                } else {
-                                    console.log(`No Google Books results for "${book.title}" by "${book.author}"`);
                                 }
+                                
+                                // Small delay between different search strategies
+                                await new Promise(resolve => setTimeout(resolve, 100));
+                            }
+                            
+                            if (!googleBooksId) {
+                                console.log(`No good match found for "${book.title}" by "${book.author}"`);
                             }
                             
                             // Add delay between API calls
