@@ -7,6 +7,26 @@ import Spinner from "./Spinner";
 const BookListings = () => {
   const [scrollStates, setScrollStates] = useState({});
 
+  // Save scroll positions to sessionStorage
+  const saveScrollPosition = (categoryIndex, scrollLeft) => {
+    const scrollPositions = JSON.parse(sessionStorage.getItem('bookListingsScrollPositions') || '{}');
+    scrollPositions[categoryIndex] = scrollLeft;
+    sessionStorage.setItem('bookListingsScrollPositions', JSON.stringify(scrollPositions));
+  };
+
+  // Restore scroll positions from sessionStorage
+  const restoreScrollPositions = () => {
+    const scrollPositions = JSON.parse(sessionStorage.getItem('bookListingsScrollPositions') || '{}');
+    
+    Object.entries(scrollPositions).forEach(([categoryIndex, scrollLeft]) => {
+      const container = document.getElementById(`books-container-${categoryIndex}`);
+      if (container) {
+        container.scrollLeft = scrollLeft;
+        updateScrollState(parseInt(categoryIndex));
+      }
+    });
+  };
+
   const { data: popularBooksData, error: popularBooksError, isLoading: popularBooksLoading } = useGetPopularBooksQuery();
   const { data: allBooksData, error: allBooksError, isLoading: allBooksLoading } = useGetAllBooksQuery();
 
@@ -28,12 +48,14 @@ const BookListings = () => {
   // Update scroll states when data loads
   useEffect(() => {
     if (popularBooksData && allBooksData) {
-      // Wait for DOM to update, then check all containers
+      // Restore scroll positions after data is ready
+      restoreScrollPositions();
       setTimeout(() => {
         const totalCategories = 1 + (allBooksData?.lists?.length || 0);
         for (let i = 0; i < totalCategories; i++) {
           updateScrollState(i);
         }
+        
       }, 100);
     }
   }, [popularBooksData, allBooksData]);
@@ -142,7 +164,10 @@ const BookListings = () => {
                     scrollbarWidth: 'none', // Firefox
                     msOverflowStyle: 'none', // IE and Edge
                   }}
-                  onScroll={() => updateScrollState(categoryIndex)}
+                  onScroll={(e) => {
+                    updateScrollState(categoryIndex);
+                    saveScrollPosition(categoryIndex, e.target.scrollLeft);
+                  }}
                 >
                   {category.books.map((book) => (
                     <div 
