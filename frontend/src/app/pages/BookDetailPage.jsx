@@ -176,11 +176,11 @@ const BookDetail = () => {
         <div className="bg-slate-600 rounded-lg p-6 mb-8">
           <div className="flex flex-col lg:flex-row gap-6">
             {/* Book Image - on left */}
-            <div className="flex-shrink-0">
+            <div className="flex-shrink-0 w-36 sm:w-38 md:w-40 lg:w-44 xl:w-48">
               <img 
                 src={imageLinks?.thumbnail || imageLinks?.smallThumbnail || imageLinks?.medium || "https://via.placeholder.com/300x400"}
                 alt={title}
-                className="w-full max-w-sm lg:max-w-md min-h-50 lg:min-h-80 aspect-[2/3] object-cover rounded-lg shadow-lg mx-auto lg:mx-0"
+                className="w-full aspect-[2/3] object-cover rounded-lg shadow-lg"
               />
             </div>
             
