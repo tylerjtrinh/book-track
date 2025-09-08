@@ -180,7 +180,7 @@ const BookDetail = () => {
               <img 
                 src={imageLinks?.thumbnail || imageLinks?.smallThumbnail || imageLinks?.medium || "https://via.placeholder.com/300x400"}
                 alt={title}
-                className="w-full max-w-50 lg:max-w-60 min-h-70 lg:min-h-90 aspect-[2/3] object-cover rounded-lg shadow-lg mx-auto lg:mx-0"
+                className="w-full max-w-sm lg:max-w-md min-h-50 lg:min-h-80 aspect-[2/3] object-cover rounded-lg shadow-lg mx-auto lg:mx-0"
               />
             </div>
             
