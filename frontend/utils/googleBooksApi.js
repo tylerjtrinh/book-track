@@ -1,6 +1,9 @@
+const API_KEY = import.meta.env.VITE_GOOGLE_BOOKS_API_KEY;
+
 export const searchGoogleBooks = async (searchQuery, maxResults) => {
     try {
-        const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=${maxResults}`;
+        const keyParam = API_KEY ? `&key=${API_KEY}` : '';
+        const url = `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=${maxResults}${keyParam}`;
         const res = await fetch(url);
 
         if(!res.ok) {
@@ -17,7 +20,8 @@ export const searchGoogleBooks = async (searchQuery, maxResults) => {
 
 export const getGoogleBook = async (googleBookId) => {
     try {
-        const url = `https://www.googleapis.com/books/v1/volumes/${googleBookId}`;
+        const keyParam = API_KEY ? `?key=${API_KEY}` : '';
+        const url = `https://www.googleapis.com/books/v1/volumes/${googleBookId}${keyParam}`;
         const res = await fetch(url);
 
         if(!res.ok) {
