@@ -3,6 +3,46 @@ import pool from '../config/db.js';
 import dotenv from 'dotenv';
 dotenv.config();
 
+class QuotaExceededError extends Error {}
+
+const MIN_MATCH_RATE = 0.5;
+const RATE_LIMIT_BACKOFFS = [5000, 15000, 45000, 90000];
+const DAILY_REQUEST_BUDGET = 800;
+
+const sleep = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+let googleRequestCount = 0;
+
+const fetchGoogleBooks = async (url) => {
+    if (googleRequestCount >= DAILY_REQUEST_BUDGET) {
+        throw new QuotaExceededError(
+            `Aborting sync: reached the ${DAILY_REQUEST_BUDGET} request budget for the Google Books daily quota`
+        );
+    }
+
+    for (let attempt = 0; attempt <= RATE_LIMIT_BACKOFFS.length; attempt++) {
+        googleRequestCount++;
+        const response = await fetch(url);
+
+        if (response.status !== 429) {
+            if (!response.ok) {
+                console.error(`Google Books API error: ${response.status} ${response.statusText}`);
+            }
+            return response;
+        }
+
+        if (attempt === RATE_LIMIT_BACKOFFS.length) {
+            throw new QuotaExceededError(
+                'Google Books API still rate limited (429) after retries - aborting sync to avoid overwriting live data with unmatched books'
+            );
+        }
+
+        const wait = RATE_LIMIT_BACKOFFS[attempt];
+        console.log(`Rate limited by Google Books (429), retrying in ${wait / 1000}s...`);
+        await sleep(wait);
+    }
+};
+
 // Sync NYT Best Sellers to database
 const syncNYTBestSellers = async () => {
     try {
@@ -12,6 +52,12 @@ const syncNYTBestSellers = async () => {
         if (!apiKey) {
             throw new Error('NYT_API_KEY environment variable is required');
         }
+
+        const googleApiKey = process.env.GOOGLE_BOOKS_API_KEY;
+        if (!googleApiKey) {
+            throw new Error('GOOGLE_BOOKS_API_KEY environment variable is required');
+        }
+        const googleKeyParam = `&key=${googleApiKey}`;
 
         // Fetch overview data from NYT API
         // Current bestseller list
@@ -55,7 +101,9 @@ const syncNYTBestSellers = async () => {
         let totalBooksInserted = 0;
         let googleBooksLookups = 0;
         let successfulLookups = 0;
-        
+        let cacheHits = 0;
+        const lookupCache = new Map();
+
         // Process weekly lists from overview
         for (const list of data.results.lists) {
             console.log(`Processing list: ${list.list_name} (${list.books.length} books)`);
@@ -66,10 +114,23 @@ const syncNYTBestSellers = async () => {
                     let googleBooksId = null;
                     const isbn13 = book.primary_isbn13;
                     const isbn10 = book.primary_isbn10;
-                    
+
+                    const cacheKey = isbn13 || isbn10 || `${book.title}|${book.author}`;
+                    if (lookupCache.has(cacheKey)) {
+                        const cached = lookupCache.get(cacheKey);
+                        googleBooksId = cached.googleBooksId;
+                        if (!book.book_image && cached.bookImage) {
+                            book.book_image = cached.bookImage;
+                        }
+                        cacheHits++;
+                        console.log(`Reusing cached lookup for "${book.title}" (${googleBooksId || 'no match'})`);
+                    }
+
                     // Strategy 1: Try ISBN-13 first, then ISBN-10 as fallback
-                    const isbnsToTry = [isbn13, isbn10].filter(Boolean);
-                    
+                    const isbnsToTry = googleBooksId || lookupCache.has(cacheKey)
+                        ? []
+                        : [isbn13, isbn10].filter(Boolean);
+
                     for (const isbn of isbnsToTry) {
                         if (googleBooksId) break; // Stop if we already found a match
                         
@@ -77,10 +138,10 @@ const syncNYTBestSellers = async () => {
                             googleBooksLookups++;
                             console.log(`Looking up Google Books ID for "${book.title}" (ISBN: ${isbn}) [${googleBooksLookups}]`);
                             
-                            const googleResponse = await fetch(
-                                `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}`
+                            const googleResponse = await fetchGoogleBooks(
+                                `https://www.googleapis.com/books/v1/volumes?q=isbn:${isbn}${googleKeyParam}`
                             );
-                            
+
                             if (googleResponse.ok) {
                                 const googleData = await googleResponse.json();
                                 if (googleData.items && googleData.items.length > 0) {
@@ -102,12 +163,13 @@ const syncNYTBestSellers = async () => {
                             // Add small delay to respect rate limits
                             await new Promise(resolve => setTimeout(resolve, 100));
                         } catch (googleError) {
+                            if (googleError instanceof QuotaExceededError) throw googleError;
                             console.log(`Error looking up Google Books for "${book.title}" with ISBN ${isbn}:`, googleError.message);
                         }
                     }
 
                     // Strategy 2: If ISBN search failed, try title + author search
-                    if (!googleBooksId && book.title && book.author) {
+                    if (!googleBooksId && !lookupCache.has(cacheKey) && book.title && book.author) {
                         try {
                             googleBooksLookups++;
                             // Clean up title and author for better search results
@@ -127,10 +189,10 @@ const syncNYTBestSellers = async () => {
                                 
                                 console.log(`Fallback search for "${book.title}" by "${book.author}" [${googleBooksLookups}] - Strategy: ${searchQuery}`);
                                 
-                                const googleResponse = await fetch(
-                                    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=5`
+                                const googleResponse = await fetchGoogleBooks(
+                                    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(searchQuery)}&maxResults=5${googleKeyParam}`
                                 );
-                                
+
                                 if (googleResponse.ok) {
                                     const googleData = await googleResponse.json();
                                     if (googleData.items && googleData.items.length > 0) {
@@ -206,12 +268,20 @@ const syncNYTBestSellers = async () => {
                             // Add delay between API calls
                             await new Promise(resolve => setTimeout(resolve, 150));
                         } catch (googleError) {
+                            if (googleError instanceof QuotaExceededError) throw googleError;
                             console.log(`Error in title+author search for "${book.title}":`, googleError.message);
                         }
                     }
 
+                    if (!lookupCache.has(cacheKey)) {
+                        lookupCache.set(cacheKey, {
+                            googleBooksId,
+                            bookImage: book.book_image || null
+                        });
+                    }
+
                     await pool.query(
-                        `INSERT INTO explore_books_staging 
+                        `INSERT INTO explore_books_staging
                          (google_books_id, title, author, book_image, isbn_13, isbn_10,
                           list_name, list_name_encoded, rank)
                          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)`,
@@ -229,13 +299,24 @@ const syncNYTBestSellers = async () => {
                     );
                     totalBooksInserted++;
                 } catch (error) {
+                    if (error instanceof QuotaExceededError) throw error;
                     console.error(`Error inserting book "${book.title}":`, error.message);
                 }
             }
         }
 
         
-        // swap: Replace live data with staging data (zero downtime)
+        const matchRate = totalBooksInserted > 0
+            ? (await pool.query('SELECT count(google_books_id)::int AS matched FROM explore_books_staging')).rows[0].matched / totalBooksInserted
+            : 0;
+
+        if (matchRate < MIN_MATCH_RATE) {
+            throw new Error(
+                `Aborting swap: only ${Math.round(matchRate * 100)}% of ${totalBooksInserted} books matched a Google Books ID ` +
+                `(minimum ${Math.round(MIN_MATCH_RATE * 100)}%). Live table left untouched; staging kept for inspection.`
+            );
+        }
+
         console.log('Performing swap to live table...');
         await pool.query('BEGIN');
         try {
@@ -247,22 +328,15 @@ const syncNYTBestSellers = async () => {
             
             await pool.query('COMMIT');
             console.log('Swap completed successfully!');
-            
-            //Clean up old table outside of transaction (with CASCADE to handle dependencies)
-            try {
-                await pool.query('DROP TABLE IF EXISTS explore_books_old CASCADE');
-                console.log('Old table cleanup completed');
-            } catch (cleanupError) {
-                console.log('Warning: Could not clean up old table:', cleanupError.message);
-                console.log('Old table will be cleaned up on next sync');
-            }
+            console.log('Previous data retained as explore_books_old (dropped at the start of the next sync)');
         } catch (swapError) {
             await pool.query('ROLLBACK');
             throw new Error(`Swap failed: ${swapError.message}`);
         }
         
         console.log(`Sync completed! Inserted ${totalBooksInserted} books from ${data.results.lists.length} lists`);
-        console.log(`Google Books API calls: ${googleBooksLookups} total, ${successfulLookups} successful (${Math.round(successfulLookups/googleBooksLookups*100)}% success rate)`);
+        console.log(`Google Books lookups: ${googleBooksLookups} attempted, ${successfulLookups} matched, ${cacheHits} served from cache`);
+        console.log(`Google Books API requests used: ${googleRequestCount} of the ${DAILY_REQUEST_BUDGET} budget`);
         console.log('Last updated:', new Date().toISOString());
         
     } catch (error) {
